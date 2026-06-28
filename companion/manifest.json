@@ -1,0 +1,27 @@
+{
+	"id": "highpass-highascg",
+	"type": "connection",
+	"name": "highpass-highascg",
+	"shortname": "HighAsCG",
+	"description": "Bridge between Companion, HighAsCG app, and CasparCG Server",
+	"version": "1.0.1",
+	"license": "MIT",
+	"manufacturer": "HighPass",
+	"repository": "git+https://github.com/bitfocus/companion-module-highpass-highascg.git",
+	"bugs": "https://github.com/bitfocus/companion-module-highpass-highascg/issues",
+	"maintainers": [
+		{
+			"name": "Marcin Wardecki",
+			"email": "m.wardecki89@gmail.com"
+		}
+	],
+	"products": ["CasparCG + HighAsCG"],
+	"keywords": ["HighPass", "CasparCG", "Video", "Playout", "HighAsCG"],
+	"runtime": {
+		"type": "node22",
+		"api": "nodejs-ipc",
+		"apiVersion": "2.1.0",
+		"entrypoint": "../index.js"
+	},
+	"legacyIds": []
+}
