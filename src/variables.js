@@ -23,6 +23,13 @@ const CONNECTION_VARIABLE_DEFINITIONS = [
   },
 ];
 
+const WOL_VARIABLE_DEFINITIONS = [
+  {
+    variableId: "wol_target",
+    name: "WoL target (hostname and IP)",
+  },
+];
+
 const TIMELINE_VARIABLE_DEFINITIONS = [
   { variableId: "highascg_timeline_id", name: "HighAsCG: Active timeline id" },
   { variableId: "highascg_timeline_name", name: "HighAsCG: Active timeline name" },
@@ -34,6 +41,14 @@ const TIMELINE_VARIABLE_DEFINITIONS = [
   { variableId: "highascg_timeline_position_ms", name: "HighAsCG: Timeline position (ms, raw)" },
   { variableId: "highascg_timeline_duration_ms", name: "HighAsCG: Timeline duration (ms, raw)" },
   { variableId: "highascg_timeline_remaining_ms", name: "HighAsCG: Timeline remaining (ms, raw)" },
+];
+
+const STREAMING_CHANNEL_VARIABLE_DEFINITIONS = [
+  { variableId: "highascg_rtmp_state", name: "HighAsCG: RTMP state (active/inactive)" },
+  { variableId: "highascg_rtmp_url", name: "HighAsCG: RTMP URL" },
+  { variableId: "highascg_record_state", name: "HighAsCG: Record state (recording/idle)" },
+  { variableId: "highascg_record_path", name: "HighAsCG: Record file path" },
+  { variableId: "highascg_record_output_id", name: "HighAsCG: Record output ID" },
 ];
 
 /** @returns {string} Companion variable id for full-frame compose preview on a channel. */
@@ -181,7 +196,9 @@ export function getInitialVariableDefinitions() {
   return variableDefinitionsToObject([
     ...CONNECTION_VARIABLE_DEFINITIONS,
     ...TIMELINE_VARIABLE_DEFINITIONS,
+    ...STREAMING_CHANNEL_VARIABLE_DEFINITIONS,
     ...UI_SELECTION_VARIABLE_DEFINITIONS,
+    ...WOL_VARIABLE_DEFINITIONS,
   ]);
 }
 

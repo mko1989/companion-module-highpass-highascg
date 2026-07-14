@@ -38,8 +38,24 @@ When the bridge is enabled, HighAsCG internal variables are exposed as Companion
 
 - **Direct TCP:** Play Clip, Stop Layer, Clear, Raw AMCP.
 - **Bridge:** Scene Take, Timeline Play/Stop, Audio Volume (via HighAsCG API), Apply Multiview Layout.
+- **Wake on LAN:** Wake stored target or arbitrary MAC via magic packet (target must be powered off via soft shutdown, not cold boot).
 
 Ensure the HighAsCG app is running and reachable before expecting bridge actions or variables to work.
+
+### Wake on LAN
+
+Store the target box **MAC address**, **hostname** (optional, for display), and **IP** (optional, for display) in Companion's instance configuration. Two actions are available:
+
+- **Wake stored target** — sends magic packet to the configured MAC address via the broadcast address and port you set.
+- **Wake by MAC** — one-off action with per-action MAC, broadcast, and port options.
+
+**Important:** The target box must:
+
+1. Have **BIOS Wake-on-LAN enabled** (usually found in BIOS/UEFI under Power Management or Integrated Peripherals).
+2. Have the Ethernet interface armed at boot with `ethtool -s <iface> wol g` (add to init scripts or systemd service).
+3. Be on the **same L2 subnet** as Companion for magic packets to reach it (broadcast packets don't cross routers).
+
+Magic packets are sent 3 times with 100 ms spacing for reliability on noisy L2 networks. The variable `wol_target` shows hostname/IP for button labels.
 
 ## Installing a packaged build
 
