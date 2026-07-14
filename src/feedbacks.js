@@ -333,5 +333,35 @@ export default function (instance) {
         return ctx === String(feedback.options.context || "").trim();
       },
     },
+
+    streaming_active: {
+      type: "boolean",
+      name: "RTMP streaming is active",
+      description: "True when RTMP streaming is currently running",
+      defaultStyle: {
+        bgcolor: combineRgb(200, 0, 0),
+        color: combineRgb(255, 255, 255),
+      },
+      options: [],
+      callback: () => {
+        const state = String(instance.getVariableValue("highascg_rtmp_state") ?? "").trim();
+        return state === "active";
+      },
+    },
+
+    recording_active: {
+      type: "boolean",
+      name: "Recording is active",
+      description: "True when recording is currently running",
+      defaultStyle: {
+        bgcolor: combineRgb(200, 0, 0),
+        color: combineRgb(255, 255, 255),
+      },
+      options: [],
+      callback: () => {
+        const state = String(instance.getVariableValue("highascg_record_state") ?? "").trim();
+        return state === "recording";
+      },
+    },
   };
 }

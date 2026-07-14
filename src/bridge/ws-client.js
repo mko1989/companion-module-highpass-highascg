@@ -1,5 +1,6 @@
 import WebSocket from "ws";
 import { getBridgePort } from "../host-target.js";
+import { sendCompanionHello } from "./companion-hello.js";
 
 class HighAsCGWs {
   constructor(instance) {
@@ -28,6 +29,7 @@ class HighAsCGWs {
 
     this.ws.on("open", () => {
       this.instance.log("debug", "Connected to HighAsCG WebSocket bridge");
+      sendCompanionHello(this.instance);
     });
 
     this.ws.on("message", (data) => {

@@ -10,6 +10,8 @@ import { refreshLookAirFeedbacks } from "../look-feedback-ids.js";
 import { msToHms } from "../time-format.js";
 import { isComposePreviewButtonsEnabled } from "../compose-preview-channels.js";
 import { PreviewVariableGate } from "../preview-variable-gate.js";
+import { sendCompanionHello } from "./companion-hello.js";
+import { PREVIEW } from "./contract.js";
 
 function _str(v) {
   if (v == null) return "";
@@ -62,6 +64,10 @@ function _labelForServerKey(key) {
   const quad = key.match(/^compose_preview_ch(\d+)_quad_(tl|tr|bl|br)$/)
   if (quad) {
     return `Compose preview ch${quad[1]} quadrant ${quad[2].toUpperCase()}`
+  }
+  const lookAir = key.match(/^look_air_frame_(.+)$/)
+  if (lookAir) {
+    return `Look on-air still (${lookAir[1]})`
   }
   if (key.startsWith("ui_selection_")) {
     const tail = key.slice("ui_selection_".length).replace(/_/g, " ");
@@ -128,8 +134,9 @@ class HighAsCGStateSync {
   _isPreviewVariableKey(key) {
     const k = String(key);
     return (
-      /^compose_preview_ch\d+_image$/.test(k) ||
-      /^compose_preview_ch\d+_quad_(tl|tr|bl|br)$/.test(k)
+      PREVIEW.COMPOSE_IMAGE_RE.test(k) ||
+      PREVIEW.COMPOSE_QUAD_RE.test(k) ||
+      PREVIEW.LOOK_AIR_FRAME_RE.test(k)
     );
   }
 
@@ -200,6 +207,17 @@ class HighAsCGStateSync {
       values[`highascg_${key}`] = val;
     }
     this.instance.setVariableValues(values);
+    if (this._composePreviewButtonsEnabled()) {
+      for (const [key, val] of Object.entries(variables)) {
+        const m = String(key).match(/^compose_preview_ch(\d+)_image$/);
+        if (m) {
+          this.instance._lookAirFrames?.onChannelPreview(
+            parseInt(m[1], 10),
+            val,
+          );
+        }
+      }
+    }
     if (this._hasNonPreviewVariables(variables)) {
       refreshLookAirFeedbacks(this.instance);
     }
@@ -256,6 +274,7 @@ class HighAsCGStateSync {
         if (typeof this.instance.updatePresets === "function") {
           this.instance.updatePresets();
         }
+        sendCompanionHello(this.instance);
       }
     }
 
@@ -275,6 +294,7 @@ class HighAsCGStateSync {
         typeof this.instance._sceneLive === "object"
           ? this.instance._sceneLive
           : {};
+      this.instance._lookAirFrames?.syncFromSceneLive(prevLive, nextLive);
       this._refreshLookAirFeedbacks();
     }
 

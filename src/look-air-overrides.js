@@ -74,7 +74,7 @@ export function labelOnAirOverrides(_lookId) {
  * @param {string} opts.lookId
  * @param {string} opts.borderId
  * @param {string} opts.previewLayerId
- * @param {string} opts.previewVariableId — live compose var, e.g. highascg_compose_preview_ch1_image
+ * @param {string} opts.previewVariableId — per-look var, e.g. highascg_look_air_frame_{slug}
  */
 export function buildLookTallyStyleOverrides(opts) {
   /** @type {import('@companion-module/base').CompanionPresetFeedbackStyleOverride[]} */

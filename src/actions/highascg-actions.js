@@ -9,6 +9,9 @@ import getTimelineActions from "./timeline-actions.js";
 import getMixerLayerActions from "./mixer-layer-actions.js";
 import getPipOverlayActions from "./pip-overlay-actions.js";
 import getMiscActions from "./misc-actions.js";
+import getStreamingActions from "./streaming-actions.js";
+import getMultiviewActions from "./multiview-actions.js";
+import getCountdownActions from "./countdown-actions.js";
 
 export default function (instance) {
   return {
@@ -18,5 +21,8 @@ export default function (instance) {
     ...getMiscActions(instance),
     ...getMixerLayerActions(instance),
     ...getPipOverlayActions(instance),
+    ...getStreamingActions(instance),
+    ...getMultiviewActions(instance),
+    ...getCountdownActions(instance),
   };
 }

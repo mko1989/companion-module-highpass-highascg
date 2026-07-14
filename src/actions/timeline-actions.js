@@ -140,5 +140,81 @@ export default function (instance) {
         }
       },
     },
+
+    timeline_take: {
+      name: "Timeline: Take (direct to out bus)",
+      options: [
+        { type: "textinput", id: "id", label: "Timeline id", default: "" },
+        {
+          type: "number",
+          id: "screen_index",
+          label: "Screen index (sendTo)",
+          default: 0,
+          min: 0,
+          max: 7,
+        },
+        {
+          type: "checkbox",
+          id: "tl_preview",
+          label: "Send to preview",
+          default: true,
+        },
+        {
+          type: "checkbox",
+          id: "tl_program",
+          label: "Send to program",
+          default: true,
+        },
+      ],
+      callback: async (action) => {
+        if (!instance.bridge?.api) return;
+        const id = (action.options.id || "").trim();
+        if (!id) return;
+        try {
+          await instance.bridge.api.timelineTake(id, {
+            sendTo: defaultSendTo(action),
+          });
+        } catch (e) {
+          instance.log("error", `Timeline take: ${e.message || e}`);
+        }
+      },
+    },
+
+    timeline_sendto: {
+      name: "Timeline: Set sendTo routing",
+      options: [
+        { type: "textinput", id: "id", label: "Timeline id", default: "" },
+        {
+          type: "number",
+          id: "screen_index",
+          label: "Screen index",
+          default: 0,
+          min: 0,
+          max: 7,
+        },
+        {
+          type: "checkbox",
+          id: "tl_preview",
+          label: "Send to preview",
+          default: true,
+        },
+        {
+          type: "checkbox",
+          id: "tl_program",
+          label: "Send to program",
+          default: true,
+        },
+      ],
+      callback: async (action) => {
+        if (!instance.bridge?.api) return;
+        const id = (action.options.id || "").trim();
+        if (!id) return;
+        try {
+          await instance.bridge.api.timelineSendTo(id, defaultSendTo(action));
+        } catch (e) {
+          instance.log("error", `Timeline sendto: ${e.message || e}`);
+        }
+      },
+    },
   };
 }

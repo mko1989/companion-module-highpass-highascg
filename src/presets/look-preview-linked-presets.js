@@ -2,7 +2,7 @@ import { combineRgb } from "@companion-module/base";
 import { filterLooksForScreen } from "../look-scope.js";
 import { buildLookTallyStyleOverrides } from "../look-air-overrides.js";
 import { lookLabelVariableId } from "../look-vars.js";
-import { composePreviewImageVariableId } from "../variables.js";
+import { lookAirFrameVariableId } from "../look-air-frame.js";
 import {
   connectionVariableExpression,
   connectionLabel,
@@ -171,7 +171,7 @@ function buildLookPreviewLinkedPreset(look, layout, instance) {
         lookId: look.id,
         borderId: "pgm_border",
         previewLayerId: "preview_pgm",
-        previewVariableId: composePreviewImageVariableId(layout.pgmCh),
+        previewVariableId: lookAirFrameVariableId(look.id),
       }),
     },
   ];
@@ -185,7 +185,7 @@ function buildLookPreviewLinkedPreset(look, layout, instance) {
         lookId: look.id,
         borderId: "prv_border",
         previewLayerId: "preview_prv",
-        previewVariableId: composePreviewImageVariableId(layout.prvCh),
+        previewVariableId: lookAirFrameVariableId(look.id),
       }),
     });
   }

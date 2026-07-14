@@ -6,9 +6,7 @@
  */
 
 import crypto from "crypto";
-
-const PREVIEW_SERVER_KEY_RE =
-  /^compose_preview_ch\d+_(?:image|quad_(?:tl|tr|bl|br))$/;
+import { isComposePreviewServerKey } from "./bridge/contract.js";
 
 class PreviewVariableGate {
   /** @type {Map<string, string>} */
@@ -18,7 +16,7 @@ class PreviewVariableGate {
    * @param {string} key
    */
   isPreviewServerKey(key) {
-    return PREVIEW_SERVER_KEY_RE.test(String(key));
+    return isComposePreviewServerKey(key);
   }
 
   /**
@@ -65,4 +63,4 @@ class PreviewVariableGate {
   }
 }
 
-export { PreviewVariableGate, PREVIEW_SERVER_KEY_RE };
+export { PreviewVariableGate };
