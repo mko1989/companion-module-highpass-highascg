@@ -37,6 +37,11 @@ export default function (instance) {
               { id: "program", label: "Program (PGM take)" },
               { id: "preview", label: "Preview (PRV cue)" },
             ],
+            // Desk buttons saved before this option existed have NO stored target; Companion 5's
+            // option parser hard-fails a strict dropdown on a missing value ("Value is not in the
+            // list of choices") BEFORE the callback runs. allowCustom lets those parse; the
+            // callback already defaults anything non-"preview" to program.
+            allowCustom: true,
           },
           {
             type: "number",

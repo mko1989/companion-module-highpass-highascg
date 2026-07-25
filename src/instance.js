@@ -190,20 +190,6 @@ class HighAsCGInstance extends InstanceBase {
     const router = this.connectionRouter;
     if (!router) return;
 
-    // Build WoL target display
-    const hostname = String(this.config.wol_hostname || "").trim();
-    const ip = String(this.config.wol_ip || "").trim();
-    let wolTarget = "";
-    if (hostname && ip) {
-      wolTarget = `${hostname} (${ip})`;
-    } else if (hostname) {
-      wolTarget = hostname;
-    } else if (ip) {
-      wolTarget = ip;
-    } else if (this.config.wol_mac) {
-      wolTarget = String(this.config.wol_mac).trim();
-    }
-
     this.setVariableValues({
       highascg_connection_target: router.getTarget(),
       highascg_active_host: router.getActiveHost(),
@@ -214,7 +200,6 @@ class HighAsCGInstance extends InstanceBase {
           : "",
       highascg_accepts_control: "",
       highascg_control_plane_reason: "",
-      wol_target: wolTarget,
     });
   }
 

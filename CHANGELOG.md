@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-07-25
+
+### Removed
+- **Wake-on-LAN (owner decision, desk QA 2026-07-25):** all WoL config fields, actions, the
+  `wol_target` variable, and the packet test. The regex-validated WoL fields also blocked
+  saving the connection config while empty (Companion validates `regex` even on optional
+  empty textinputs), which was the reported "cannot save config" bug.
+
+### Fixed
+- Quad compose-preview presets `preview_chN_quad_br` were rejected by Companion 5's
+  layered-element schema (x/y/width/height are 0..100): the screen badge used `x: -20`.
+  Re-expressed as `x: 0, width: 80, halign: right` — same visible position.
+- `look_take` buttons saved before the `target` (Bus) option existed failed to parse
+  ("Value is not in the list of choices") because Companion 5 hard-fails a strict dropdown
+  on a missing stored value. The dropdown now allows custom values and the callback keeps
+  defaulting anything non-`preview` to program.
+
 ## [1.0.3] - 2026-07-14
 
 ### Added

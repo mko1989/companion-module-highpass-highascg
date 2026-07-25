@@ -4,7 +4,7 @@
 	"name": "highpass-highascg",
 	"shortname": "HighAsCG",
 	"description": "Bridge between Companion, HighAsCG app, and CasparCG Server",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"license": "MIT",
 	"manufacturer": "HighPass",
 	"repository": "git+https://github.com/bitfocus/companion-module-highpass-highascg.git",

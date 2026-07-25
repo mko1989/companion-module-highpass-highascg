@@ -23,13 +23,6 @@ const CONNECTION_VARIABLE_DEFINITIONS = [
   },
 ];
 
-const WOL_VARIABLE_DEFINITIONS = [
-  {
-    variableId: "wol_target",
-    name: "WoL target (hostname and IP)",
-  },
-];
-
 const TIMELINE_VARIABLE_DEFINITIONS = [
   { variableId: "highascg_timeline_id", name: "HighAsCG: Active timeline id" },
   { variableId: "highascg_timeline_name", name: "HighAsCG: Active timeline name" },
@@ -198,7 +191,6 @@ export function getInitialVariableDefinitions() {
     ...TIMELINE_VARIABLE_DEFINITIONS,
     ...STREAMING_CHANNEL_VARIABLE_DEFINITIONS,
     ...UI_SELECTION_VARIABLE_DEFINITIONS,
-    ...WOL_VARIABLE_DEFINITIONS,
   ]);
 }
 

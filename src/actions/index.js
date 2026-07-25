@@ -5,12 +5,10 @@
 
 import getBasicActions from "./basic-actions.js";
 import getHighAsCGActions from "./highascg-actions.js";
-import getWolActions from "./wol-actions.js";
 
 export default function (instance) {
   return {
     ...getBasicActions(instance),
     ...getHighAsCGActions(instance),
-    ...getWolActions(instance),
   };
 }
