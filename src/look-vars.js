@@ -41,6 +41,58 @@ export function syncLookLabelVariables(instance, looks) {
   }
 }
 
+/** How many screens get a label variable (HighAsCG allows up to 4 main screens). */
+export const SCREEN_LABEL_COUNT = 4;
+
+/**
+ * @param {number} screenIndex — 0-based
+ * @returns {string} variable id carrying the screen's CURRENT display name
+ */
+export function screenLabelVariableId(screenIndex) {
+  const n = Math.max(0, parseInt(String(screenIndex), 10) || 0);
+  return `highascg_screen_${n + 1}_label`;
+}
+
+/** @returns {{ variableId: string, name: string }[]} */
+export function screenLabelVariableDefinitions() {
+  const defs = [];
+  for (let i = 0; i < SCREEN_LABEL_COUNT; i += 1) {
+    defs.push({
+      variableId: screenLabelVariableId(i),
+      name: `Screen ${i + 1}: display name (custom label, else S${i + 1})`,
+    });
+  }
+  return defs;
+}
+
+/**
+ * Screen display name, mirroring the web UI's screenLabel() (WO-222): a custom label when the
+ * operator set one, else `S<n>`.
+ * @param {object | null | undefined} channelMap
+ * @param {number} screenIndex — 0-based
+ */
+export function screenDisplayLabel(channelMap, screenIndex) {
+  const labels = channelMap?.screenLabels;
+  if (Array.isArray(labels) && labels[screenIndex])
+    return String(labels[screenIndex]);
+  return `S${screenIndex + 1}`;
+}
+
+/**
+ * Push screen names into their variables, so a preset button captioned with
+ * `$(conn:highascg_screen_N_label)` follows a rename in HighAsCG.
+ * @param {import("./instance.js").HighAsCGInstance} instance
+ */
+export function syncScreenLabelVariables(instance) {
+  const map = instance?._channelMap;
+  /** @type {Record<string, string>} */
+  const values = {};
+  for (let i = 0; i < SCREEN_LABEL_COUNT; i += 1) {
+    values[screenLabelVariableId(i)] = screenDisplayLabel(map, i);
+  }
+  instance.setVariableValues(values);
+}
+
 /** How many look slots get a label variable — mirrors SLOT_COUNT in presets.js. */
 export const LOOK_SLOT_COUNT = 20;
 

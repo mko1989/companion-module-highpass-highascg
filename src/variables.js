@@ -5,7 +5,10 @@ import {
   resolveComposePreviewChannels,
 } from "./compose-preview-channels.js";
 import { screenTimerVariableDefinitions } from "./screen-timers.js";
-import { lookSlotLabelVariableDefinitions } from "./look-vars.js";
+import {
+  lookSlotLabelVariableDefinitions,
+  screenLabelVariableDefinitions,
+} from "./look-vars.js";
 
 const CONNECTION_VARIABLE_DEFINITIONS = [
   {
@@ -353,6 +356,7 @@ export function getInitialVariableDefinitions() {
     ...STREAMING_CHANNEL_VARIABLE_DEFINITIONS,
     ...screenTimerVariableDefinitions(),
     ...lookSlotLabelVariableDefinitions(),
+    ...screenLabelVariableDefinitions(),
     ...UI_SELECTION_VARIABLE_DEFINITIONS,
   ]);
 }

@@ -19,6 +19,7 @@ import {
   sortTimers,
   timerIsVisible,
   timerRunState,
+  timerSlotOptionId,
   TIMER_VARIABLE_SLOTS,
 } from "../src/screen-timers.js";
 import getScreenTimerActions from "../src/actions/screen-timer-actions.js";
@@ -180,23 +181,59 @@ describe("screen-timer model", () => {
 });
 
 describe("screen-timer actions", () => {
-  it("dropdown offers a slot-stable default plus every timer", () => {
+  it("dropdown offers the first-timer default, a slot per variable block, then each timer", () => {
     const dd = buildScreenTimerDropdown(stubInstance());
     assert.equal(dd.default, "");
     assert.equal(dd.choices[0].id, "");
+
+    const slotIds = dd.choices
+      .filter((c) => String(c.id).startsWith("slot:"))
+      .map((c) => c.id);
+    assert.equal(slotIds.length, TIMER_VARIABLE_SLOTS);
+    assert.equal(slotIds[0], "slot:1");
+    // A slot label names whoever is in it right now, and says so when empty.
+    assert.match(dd.choices[1].label, /Slot 1 — currently "A"/);
+    assert.match(dd.choices[TIMER_VARIABLE_SLOTS].label, /\(empty\)/);
+
+    // Pinning to one specific timer is still offered, after the slots.
+    const idChoices = dd.choices.filter(
+      (c) => c.id === "id-a" || c.id === "id-b",
+    );
     assert.deepEqual(
-      dd.choices.slice(1).map((c) => c.id),
+      idChoices.map((c) => c.id),
       ["id-a", "id-b"],
     );
-    assert.match(dd.choices[1].label, /slot 1 · screen 1/);
+    assert.match(idChoices[0].label, /this timer only · screen 1/);
   });
 
-  it("an empty timer option resolves to the first timer", () => {
+  it("resolves empty, slot:N and a timer id", () => {
     const inst = stubInstance();
     assert.equal(resolveTimer(inst, "").timerId, "id-a");
     assert.equal(resolveTimer(inst, "id-b").timerId, "id-b");
     assert.equal(resolveTimer(inst, "gone"), null);
     assert.equal(resolveTimer({ _screenTimers: [] }, ""), null);
+
+    // Slot binding — what the preset buttons use, so the caption variable and the action agree.
+    assert.equal(resolveTimer(inst, timerSlotOptionId(1)).timerId, "id-a");
+    assert.equal(resolveTimer(inst, timerSlotOptionId(2)).timerId, "id-b");
+    assert.equal(
+      resolveTimer(inst, timerSlotOptionId(3)),
+      null,
+      "empty slot resolves to nothing",
+    );
+    assert.equal(timerSlotOptionId(2), "slot:2");
+  });
+
+  it("a slot-bound action drives whichever timer is in that slot", async () => {
+    const inst = stubInstance();
+    await getScreenTimerActions(inst).screen_timer_reset.callback({
+      options: { timer: timerSlotOptionId(2) },
+    });
+    assert.deepEqual(inst.calls[0], {
+      fn: "cmd",
+      timerId: "id-b",
+      cmd: "reset",
+    });
   });
 
   it("transport posts one cmd — the server fans it out", async () => {

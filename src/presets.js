@@ -2,13 +2,18 @@ import { combineRgb } from "@companion-module/base";
 import { addComposePreviewPresets } from "./presets/compose-preview-presets.js";
 import { addLookPreviewLinkedPresets } from "./presets/look-preview-linked-presets.js";
 import { addPrvTakePresets } from "./presets/prv-take-presets.js";
+import { addScreenTimerPresets } from "./presets/screen-timer-presets.js";
 import {
   connectionVariableExpression,
   connectionLabel,
 } from "./connection-expressions.js";
 import { isComposePreviewButtonsEnabled } from "./compose-preview-channels.js";
 import { mainScopeShortLabel, normalizeMainScope } from "./look-scope.js";
-import { lookLabelVariableId, lookSlotLabelVariableId } from "./look-vars.js";
+import {
+  lookLabelVariableId,
+  lookSlotLabelVariableId,
+  screenLabelVariableId,
+} from "./look-vars.js";
 
 /**
  * @param {import('./instance.js').HighAsCGInstance} instance
@@ -48,6 +53,7 @@ export default function getPresets(instance) {
       definitions: [],
     },
     { id: "timeline", name: "HighAsCG · Timeline", definitions: [] },
+    { id: "screen_timers", name: "HighAsCG · Screen timers", definitions: [] },
     {
       id: "compose_preview",
       name: "HighAsCG · Compose preview",
@@ -120,7 +126,12 @@ export default function getPresets(instance) {
         // the button when it is dragged out, so a literal name freezes there and a renamed look
         // keeps its old caption forever (owner: "when a look gets a diferent title it still
         // stays look 1 in companion").
-        text: `$(${connectionLabel(instance)}:${lookLabelVariableId(look.id)})\\n${scopeTag}`,
+        // WO-384: the screen half comes from a variable too, so renaming a screen in HighAsCG
+        // re-captions the button. Looks scoped to every screen stay the literal "All".
+        text:
+          scope === "all"
+            ? `$(${connectionLabel(instance)}:${lookLabelVariableId(look.id)})\\nAll`
+            : `$(${connectionLabel(instance)}:${lookLabelVariableId(look.id)})\\n$(${connectionLabel(instance)}:${screenLabelVariableId(screenIndex)})`,
         size: "14",
         color: combineRgb(255, 255, 255),
         bgcolor: combineRgb(0, 0, 0),
@@ -132,6 +143,9 @@ export default function getPresets(instance) {
               actionId: "look_take",
               options: {
                 look_id: look.id,
+                // WO-384: the Bus option was omitted, so a button dragged from this preset had
+                // an undefined bus in its action editor instead of Program.
+                target: "program",
                 screen_index: screenIndex,
                 force_cut: false,
               },
@@ -408,6 +422,7 @@ export default function getPresets(instance) {
             actionId: "look_take",
             options: {
               look_id: "",
+              target: "program",
               screen_index: 0,
               force_cut: false,
             },
@@ -561,6 +576,10 @@ export default function getPresets(instance) {
   addLookPreviewLinkedPresets(presets, structure, instance);
 
   addPrvTakePresets(presets, structure, instance);
+
+  // WO-384 (owner: "the timer doesnt have preset buttons") — uses the shared `add` so the
+  // section ordering above stays the single source of truth.
+  addScreenTimerPresets(instance, add);
 
   add("timeline", "tl_duration_var", {
     type: "simple",

@@ -250,26 +250,43 @@ export function screenTimerVariableValues(timers, nowMs = Date.now()) {
   return vars;
 }
 
+/** Option value meaning "whichever timer is in slot N" — see resolveTimer. */
+export function timerSlotOptionId(slot) {
+  return `slot:${Math.max(1, parseInt(String(slot), 10) || 1)}`;
+}
+
 /**
- * Dropdown choices for the timer-picking actions. `""` means "the first timer", so a button
- * keeps working when a show is rebuilt with new timer ids.
+ * Dropdown choices for the timer-picking actions.
+ *
+ * Two stable forms come first: `""` = the first timer, and `slot:N` = whatever timer occupies
+ * variable slot N (`highascg_timer_N_*`, ordered screen-then-layer). Preset buttons use the slot
+ * form so a caption reading `$(…:highascg_timer_N_name)` and the action it fires always mean the
+ * same timer — and both survive a show rebuilt with new timer ids. Picking a timer by id still
+ * works for buttons that must stay pinned to one specific timer.
  * @param {{ _screenTimers?: object[] }} instance
  */
 export function buildScreenTimerDropdown(instance) {
   const timers = sortTimers(instance?._screenTimers || []);
   const choices = [{ id: "", label: "First timer (slot 1)" }];
+  for (let slot = 1; slot <= TIMER_VARIABLE_SLOTS; slot += 1) {
+    const t = timers[slot - 1];
+    choices.push({
+      id: timerSlotOptionId(slot),
+      label: `Slot ${slot}${t ? ` — currently "${(t.name || t.timerId).slice(0, 32)}"` : " (empty)"}`,
+    });
+  }
   timers.forEach((t, i) => {
     const screens = timerScreenLabel(t);
     choices.push({
       id: t.timerId,
-      label: `${(t.name || `Timer ${i + 1}`).slice(0, 48)} — slot ${i + 1}${screens ? ` · screen ${screens}` : ""}`,
+      label: `${(t.name || `Timer ${i + 1}`).slice(0, 48)} — this timer only${screens ? ` · screen ${screens}` : ""}`,
     });
   });
   return { choices, default: "", minChoicesForSearch: 8 };
 }
 
 /**
- * Resolve an action's timer option to a live record.
+ * Resolve an action's timer option to a live record: a timer id, `slot:N`, or empty for the first.
  * @param {{ _screenTimers?: object[] }} instance
  * @param {string} timerIdOption
  * @returns {object|null}
@@ -278,5 +295,7 @@ export function resolveTimer(instance, timerIdOption) {
   const timers = sortTimers(instance?._screenTimers || []);
   const wanted = String(timerIdOption || "").trim();
   if (!wanted) return timers[0] || null;
+  const slotMatch = /^slot:(\d+)$/.exec(wanted);
+  if (slotMatch) return timers[parseInt(slotMatch[1], 10) - 1] || null;
   return timers.find((t) => t.timerId === wanted) || null;
 }

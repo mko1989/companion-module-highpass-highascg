@@ -1,5 +1,18 @@
 import { Regex } from "@companion-module/base";
 
+/**
+ * An IP, or nothing at all.
+ *
+ * `isVisible` hides a field but does NOT exempt it from validation, and an empty string fails
+ * `Regex.IP` — so an optional IP field with a regex blocks Save for everyone who does not use the
+ * feature (owner 2026-07-29: "i cant save the config of the module, because i have nothing in the
+ * backup ip. even though i dont have a backup and dont want to use it now").
+ *
+ * Companion's `Regex.*` constants are STRINGS in `/…/` form, not RegExp objects — hence the slice
+ * rather than `.source` (which would silently yield `/^$|undefined/`, i.e. accept only empty).
+ */
+const OPTIONAL_IP = `/^$|${Regex.IP.slice(1, -1)}/`;
+
 export default function () {
   return [
     {
@@ -119,7 +132,9 @@ export default function () {
       label: "Backup Box Host",
       width: 6,
       default: "",
-      regex: Regex.IP,
+      // Optional: empty is valid, so the config saves with Hot Backup off. Failover already
+      // requires BOTH the flag and a non-empty host (host-target.js:31-32).
+      regex: OPTIONAL_IP,
       isVisible: (cfg) => !!cfg.hot_backup_enabled,
     },
   ];

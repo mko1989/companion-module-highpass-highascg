@@ -12,6 +12,7 @@ import { isComposePreviewButtonsEnabled } from "../compose-preview-channels.js";
 import { PreviewVariableGate } from "../preview-variable-gate.js";
 import { sendCompanionHello } from "./companion-hello.js";
 import { PREVIEW } from "./contract.js";
+import { syncScreenLabelVariables } from "../look-vars.js";
 
 function _str(v) {
   if (v == null) return "";
@@ -57,17 +58,17 @@ function _deepMergeScene(a, b) {
 
 /** Human-readable Companion label for a HighAsCG `variables` key. */
 function _labelForServerKey(key) {
-  const preview = key.match(/^compose_preview_ch(\d+)_image$/)
+  const preview = key.match(/^compose_preview_ch(\d+)_image$/);
   if (preview) {
-    return `Compose preview ch${preview[1]} (button image data URI)`
+    return `Compose preview ch${preview[1]} (button image data URI)`;
   }
-  const quad = key.match(/^compose_preview_ch(\d+)_quad_(tl|tr|bl|br)$/)
+  const quad = key.match(/^compose_preview_ch(\d+)_quad_(tl|tr|bl|br)$/);
   if (quad) {
-    return `Compose preview ch${quad[1]} quadrant ${quad[2].toUpperCase()}`
+    return `Compose preview ch${quad[1]} quadrant ${quad[2].toUpperCase()}`;
   }
-  const lookAir = key.match(/^look_air_frame_(.+)$/)
+  const lookAir = key.match(/^look_air_frame_(.+)$/);
   if (lookAir) {
-    return `Look on-air still (${lookAir[1]})`
+    return `Look on-air still (${lookAir[1]})`;
   }
   if (key.startsWith("ui_selection_")) {
     const tail = key.slice("ui_selection_".length).replace(/_/g, " ");
@@ -142,12 +143,16 @@ class HighAsCGStateSync {
 
   _hasPreviewVariables(variables) {
     if (!variables || typeof variables !== "object") return false;
-    return Object.keys(variables).some((key) => this._isPreviewVariableKey(key));
+    return Object.keys(variables).some((key) =>
+      this._isPreviewVariableKey(key),
+    );
   }
 
   _hasNonPreviewVariables(variables) {
     if (!variables || typeof variables !== "object") return false;
-    return Object.keys(variables).some((key) => !this._isPreviewVariableKey(key));
+    return Object.keys(variables).some(
+      (key) => !this._isPreviewVariableKey(key),
+    );
   }
 
   _composePreviewButtonsEnabled() {
@@ -185,7 +190,18 @@ class HighAsCGStateSync {
     const scene = this._merged.scene || {};
     this.instance._sceneLive =
       scene.live && typeof scene.live === "object" ? scene.live : {};
+    const prevLabels = JSON.stringify(
+      this.instance._channelMap?.screenLabels || [],
+    );
     this.instance._channelMap = this._merged.channelMap || null;
+    // WO-384: preset button captions read the screen name from a variable, so it has to follow a
+    // rename in HighAsCG rather than being frozen at preset-build time.
+    if (
+      prevLabels !==
+      JSON.stringify(this.instance._channelMap?.screenLabels || [])
+    ) {
+      syncScreenLabelVariables(this.instance);
+    }
   }
 
   /**
@@ -260,7 +276,10 @@ class HighAsCGStateSync {
     const prevLive = this.instance._sceneLive;
 
     if (data.timeline !== undefined) {
-      this._merged.timeline = _deepMergeTimeline(this._merged.timeline, data.timeline);
+      this._merged.timeline = _deepMergeTimeline(
+        this._merged.timeline,
+        data.timeline,
+      );
     }
     if (data.scene !== undefined) {
       this._merged.scene = _deepMergeScene(this._merged.scene, data.scene);
@@ -278,7 +297,10 @@ class HighAsCGStateSync {
       }
     }
 
-    if (data.scene?.deck && typeof this.instance.applySceneDeck === "function") {
+    if (
+      data.scene?.deck &&
+      typeof this.instance.applySceneDeck === "function"
+    ) {
       this.instance.applySceneDeck(data.scene.deck);
     }
 
@@ -290,8 +312,7 @@ class HighAsCGStateSync {
 
     if (data.scene !== undefined) {
       const nextLive =
-        this.instance._sceneLive &&
-        typeof this.instance._sceneLive === "object"
+        this.instance._sceneLive && typeof this.instance._sceneLive === "object"
           ? this.instance._sceneLive
           : {};
       this.instance._lookAirFrames?.syncFromSceneLive(prevLive, nextLive);
@@ -304,7 +325,9 @@ class HighAsCGStateSync {
     const tl = this._merged.timeline || {};
     const list = Array.isArray(tl.list) ? tl.list : [];
     const playback =
-      tl.playback && typeof tl.playback === "object" ? { ...tl.playback } : null;
+      tl.playback && typeof tl.playback === "object"
+        ? { ...tl.playback }
+        : null;
 
     const tid = playback?.timelineId != null ? String(playback.timelineId) : "";
     const dur = _timelineDurationMs(list, tid);
