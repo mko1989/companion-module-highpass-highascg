@@ -19,8 +19,8 @@ import {
   sortTimers,
   timerIsVisible,
   timerRunState,
-  timerSlotOptionId,
-  TIMER_VARIABLE_SLOTS,
+  timerVariableId,
+  TIMER_VARIABLE_FIELDS,
 } from "../src/screen-timers.js";
 import getScreenTimerActions from "../src/actions/screen-timer-actions.js";
 
@@ -133,38 +133,58 @@ describe("screen-timer model", () => {
     assert.equal(timerIsVisible(a), false);
   });
 
-  it("publishes a full slot block, filled and empty", () => {
-    const defs = screenTimerVariableDefinitions();
+  it("publishes one variable block per timer that exists — and nothing for timers that do not", () => {
+    const defs = screenTimerVariableDefinitions(fixture());
     assert.equal(
       defs.filter((d) => d.variableId === "highascg_timer_count").length,
       1,
     );
-    assert.equal(
-      defs.filter((d) => /^highascg_timer_\d+_time$/.test(d.variableId)).length,
-      TIMER_VARIABLE_SLOTS,
+    // Exactly two timers → two blocks, no placeholders (owner: "no place holders").
+    assert.equal(defs.length, 1 + 2 * TIMER_VARIABLE_FIELDS.length);
+    assert.deepEqual(
+      screenTimerVariableDefinitions([]).map((d) => d.variableId),
+      ["highascg_timer_count"],
     );
+    // The definition NAME carries the human name so the picker is readable.
+    const nameDef = defs.find(
+      (d) => d.variableId === timerVariableId("id-a", "name"),
+    );
+    assert.match(nameDef.name, /Timer "A"/);
 
     const v = screenTimerVariableValues(fixture(), NOW);
     assert.equal(v.highascg_timer_count, 2);
-    assert.equal(v.highascg_timer_1_name, "A");
-    assert.equal(v.highascg_timer_1_time, "00:10:00");
-    assert.equal(v.highascg_timer_1_state, "ready");
-    assert.equal(v.highascg_timer_1_visible, "false");
-    assert.equal(v.highascg_timer_1_screens, "1"); // 1-based for the operator
-    assert.equal(v.highascg_timer_2_name, "B");
-    assert.equal(v.highascg_timer_2_time, "00:03:55");
-    assert.equal(v.highascg_timer_2_time_short, "03:55");
-    assert.equal(v.highascg_timer_2_seconds, 235);
-    assert.equal(v.highascg_timer_2_state, "running");
-    assert.equal(v.highascg_timer_2_visible, "true");
-    assert.equal(v.highascg_timer_2_id, "id-b");
-    // Unused slots exist and are blank, so button expressions never read undefined.
-    assert.equal(v.highascg_timer_3_name, "");
-    assert.equal(v.highascg_timer_3_time, "");
-    // Every declared variable gets a value.
-    for (const def of screenTimerVariableDefinitions()) {
-      assert.ok(def.variableId in v, `${def.variableId} missing from values`);
-    }
+    assert.equal(v[timerVariableId("id-a", "name")], "A");
+    assert.equal(v[timerVariableId("id-a", "time")], "00:10:00");
+    assert.equal(v[timerVariableId("id-a", "state")], "ready");
+    assert.equal(v[timerVariableId("id-a", "visible")], "false");
+    assert.equal(v[timerVariableId("id-a", "screens")], "1"); // 1-based for the operator
+    assert.equal(v[timerVariableId("id-b", "time")], "00:03:55");
+    assert.equal(v[timerVariableId("id-b", "time_short")], "03:55");
+    assert.equal(v[timerVariableId("id-b", "seconds")], 235);
+    assert.equal(v[timerVariableId("id-b", "state")], "running");
+    assert.equal(v[timerVariableId("id-b", "visible")], "true");
+    assert.equal(v[timerVariableId("id-b", "id")], "id-b");
+    // Every declared variable gets a value, and no value is published without a definition.
+    const declared = new Set(defs.map((d) => d.variableId));
+    for (const id of declared) assert.ok(id in v, `${id} missing from values`);
+    for (const id of Object.keys(v))
+      assert.ok(declared.has(id), `${id} published with no definition`);
+  });
+
+  it("variable ids are derived from the timer id, not its position", () => {
+    assert.equal(
+      timerVariableId("5c12cb77-8d56-4341", "time"),
+      "highascg_timer_5c12cb77_time",
+    );
+    assert.equal(
+      timerVariableId({ timerId: "id-a" }, "name"),
+      "highascg_timer_ida_name",
+    );
+    // Reordering the list must not move a timer's variables.
+    const [b, a] = fixture();
+    const forward = screenTimerVariableValues([a, b], NOW);
+    const reversed = screenTimerVariableValues([b, a], NOW);
+    assert.deepEqual(forward, reversed);
   });
 
   it("a clock-mode timer counts to its target time of day", () => {
@@ -174,60 +194,42 @@ describe("screen-timer model", () => {
       screens: {},
     };
     assert.equal(computeDisplaySeconds(t, at), 100);
-    const v = screenTimerVariableValues([t], at);
-    assert.equal(v.highascg_timer_1_mode, "clock");
-    assert.equal(v.highascg_timer_1_duration, "12:01:40");
+    const v = screenTimerVariableValues([{ ...t, timerId: "id-clock" }], at);
+    assert.equal(v[timerVariableId("id-clock", "mode")], "clock");
+    assert.equal(v[timerVariableId("id-clock", "duration")], "12:01:40");
   });
 });
 
 describe("screen-timer actions", () => {
-  it("dropdown offers the first-timer default, a slot per variable block, then each timer", () => {
+  it("dropdown offers the first-timer default plus exactly the timers that exist", () => {
     const dd = buildScreenTimerDropdown(stubInstance());
     assert.equal(dd.default, "");
     assert.equal(dd.choices[0].id, "");
-
-    const slotIds = dd.choices
-      .filter((c) => String(c.id).startsWith("slot:"))
-      .map((c) => c.id);
-    assert.equal(slotIds.length, TIMER_VARIABLE_SLOTS);
-    assert.equal(slotIds[0], "slot:1");
-    // A slot label names whoever is in it right now, and says so when empty.
-    assert.match(dd.choices[1].label, /Slot 1 — currently "A"/);
-    assert.match(dd.choices[TIMER_VARIABLE_SLOTS].label, /\(empty\)/);
-
-    // Pinning to one specific timer is still offered, after the slots.
-    const idChoices = dd.choices.filter(
-      (c) => c.id === "id-a" || c.id === "id-b",
-    );
     assert.deepEqual(
-      idChoices.map((c) => c.id),
+      dd.choices.slice(1).map((c) => c.id),
       ["id-a", "id-b"],
     );
-    assert.match(idChoices[0].label, /this timer only · screen 1/);
+    assert.match(dd.choices[1].label, /A · screen 1/);
+    // No placeholder rows for timers that do not exist.
+    assert.equal(dd.choices.filter((c) => /slot/i.test(c.label)).length, 0);
+    assert.deepEqual(
+      buildScreenTimerDropdown({ _screenTimers: [] }).choices.map((c) => c.id),
+      [""],
+    );
   });
 
-  it("resolves empty, slot:N and a timer id", () => {
+  it("resolves an empty option to the first timer, and an id to that timer", () => {
     const inst = stubInstance();
     assert.equal(resolveTimer(inst, "").timerId, "id-a");
     assert.equal(resolveTimer(inst, "id-b").timerId, "id-b");
     assert.equal(resolveTimer(inst, "gone"), null);
     assert.equal(resolveTimer({ _screenTimers: [] }, ""), null);
-
-    // Slot binding — what the preset buttons use, so the caption variable and the action agree.
-    assert.equal(resolveTimer(inst, timerSlotOptionId(1)).timerId, "id-a");
-    assert.equal(resolveTimer(inst, timerSlotOptionId(2)).timerId, "id-b");
-    assert.equal(
-      resolveTimer(inst, timerSlotOptionId(3)),
-      null,
-      "empty slot resolves to nothing",
-    );
-    assert.equal(timerSlotOptionId(2), "slot:2");
   });
 
-  it("a slot-bound action drives whichever timer is in that slot", async () => {
+  it("an id-bound action drives exactly that timer", async () => {
     const inst = stubInstance();
     await getScreenTimerActions(inst).screen_timer_reset.callback({
-      options: { timer: timerSlotOptionId(2) },
+      options: { timer: "id-b" },
     });
     assert.deepEqual(inst.calls[0], {
       fn: "cmd",

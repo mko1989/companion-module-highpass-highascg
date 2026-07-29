@@ -6,8 +6,36 @@
  * itself, so a ticking readout costs no extra traffic.
  */
 
-/** Slots of index-based variables published regardless of how many timers exist. */
-export const TIMER_VARIABLE_SLOTS = 8;
+/**
+ * Per-timer variable id. Keyed by the timer's own id (short form, as the web UI shows it) so the
+ * set of variables is exactly the set of timers that exist — no placeholders (owner 2026-07-29:
+ * "in companion i see there are placeholder 8 timers ... no place holders. everything should be
+ * dynamic"). Definitions are re-registered whenever the timer list changes.
+ * @param {object|string} timerOrId
+ * @param {string} field
+ */
+export function timerVariableId(timerOrId, field) {
+  const raw = typeof timerOrId === "string" ? timerOrId : timerOrId?.timerId;
+  const slug = String(raw ?? "")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .slice(0, 8)
+    .toLowerCase();
+  return `highascg_timer_${slug || "unknown"}_${field}`;
+}
+
+/** Fields published for every timer. */
+export const TIMER_VARIABLE_FIELDS = [
+  ["name", "name"],
+  ["time", "display time (hh:mm:ss)"],
+  ["time_short", "display time (mm:ss under an hour)"],
+  ["seconds", "remaining whole seconds (negative past zero)"],
+  ["state", "run state (running/paused/ready)"],
+  ["visible", "on air (true/false)"],
+  ["mode", "mode (duration/clock)"],
+  ["duration", "configured duration (hh:mm:ss)"],
+  ["screens", "screens it is on (1-based)"],
+  ["id", "timer id"],
+];
 
 /**
  * Deterministic order so `highascg_timer_1_*` keeps meaning the same timer between polls:
@@ -155,61 +183,32 @@ export function timerScreenLabel(timer) {
 }
 
 /**
- * Variable definitions: `highascg_timer_count` plus a fixed block per slot, so button
- * expressions can be written before a timer exists.
+ * Variable definitions for the timers that exist right now — one block per timer, plus the count.
+ * @param {object[]} timers — GET /api/timers/list `timers`
  * @returns {{ variableId: string, name: string }[]}
  */
-export function screenTimerVariableDefinitions() {
+export function screenTimerVariableDefinitions(timers = []) {
   const defs = [
     {
       variableId: "highascg_timer_count",
       name: "Screen timers: number of timers",
     },
   ];
-  for (let i = 1; i <= TIMER_VARIABLE_SLOTS; i++) {
-    defs.push(
-      { variableId: `highascg_timer_${i}_name`, name: `Timer ${i}: name` },
-      {
-        variableId: `highascg_timer_${i}_time`,
-        name: `Timer ${i}: display time (hh:mm:ss)`,
-      },
-      {
-        variableId: `highascg_timer_${i}_time_short`,
-        name: `Timer ${i}: display time (mm:ss under an hour)`,
-      },
-      {
-        variableId: `highascg_timer_${i}_seconds`,
-        name: `Timer ${i}: remaining whole seconds (negative past zero)`,
-      },
-      {
-        variableId: `highascg_timer_${i}_state`,
-        name: `Timer ${i}: run state (running/paused/ready)`,
-      },
-      {
-        variableId: `highascg_timer_${i}_visible`,
-        name: `Timer ${i}: on air (true/false)`,
-      },
-      {
-        variableId: `highascg_timer_${i}_mode`,
-        name: `Timer ${i}: mode (duration/clock)`,
-      },
-      {
-        variableId: `highascg_timer_${i}_duration`,
-        name: `Timer ${i}: configured duration (hh:mm:ss)`,
-      },
-      {
-        variableId: `highascg_timer_${i}_screens`,
-        name: `Timer ${i}: screens it is on (1-based)`,
-      },
-      { variableId: `highascg_timer_${i}_id`, name: `Timer ${i}: timer id` },
-    );
+  for (const t of sortTimers(timers)) {
+    const label = String(t.name || t.timerId || "Timer").slice(0, 40);
+    for (const [field, what] of TIMER_VARIABLE_FIELDS) {
+      defs.push({
+        variableId: timerVariableId(t, field),
+        name: `Timer "${label}": ${what}`,
+      });
+    }
   }
   return defs;
 }
 
 /**
- * Variable values for a polled timer list.
- * @param {object[]} timers — already sorted, or raw (sorted here)
+ * Variable values for a polled timer list — only for timers that exist.
+ * @param {object[]} timers
  * @param {number} [nowMs]
  * @returns {Record<string, string|number>}
  */
@@ -217,76 +216,50 @@ export function screenTimerVariableValues(timers, nowMs = Date.now()) {
   const sorted = sortTimers(timers);
   /** @type {Record<string, string|number>} */
   const vars = { highascg_timer_count: sorted.length };
-  for (let i = 1; i <= TIMER_VARIABLE_SLOTS; i++) {
-    const t = sorted[i - 1];
-    if (!t) {
-      vars[`highascg_timer_${i}_name`] = "";
-      vars[`highascg_timer_${i}_time`] = "";
-      vars[`highascg_timer_${i}_time_short`] = "";
-      vars[`highascg_timer_${i}_seconds`] = "";
-      vars[`highascg_timer_${i}_state`] = "";
-      vars[`highascg_timer_${i}_visible`] = "";
-      vars[`highascg_timer_${i}_mode`] = "";
-      vars[`highascg_timer_${i}_duration`] = "";
-      vars[`highascg_timer_${i}_screens`] = "";
-      vars[`highascg_timer_${i}_id`] = "";
-      continue;
-    }
+  for (const t of sorted) {
     const secs = computeDisplaySeconds(t, nowMs);
-    vars[`highascg_timer_${i}_name`] = t.name || `Timer ${i}`;
-    vars[`highascg_timer_${i}_time`] = formatTimerClock(secs);
-    vars[`highascg_timer_${i}_time_short`] = formatTimerShort(secs);
-    vars[`highascg_timer_${i}_seconds`] = Math.trunc(secs);
-    vars[`highascg_timer_${i}_state`] = timerRunState(t);
-    vars[`highascg_timer_${i}_visible`] = timerIsVisible(t) ? "true" : "false";
-    vars[`highascg_timer_${i}_mode`] = t.config?.mode || "duration";
-    vars[`highascg_timer_${i}_duration`] =
+    const set = (field, value) => {
+      vars[timerVariableId(t, field)] = value;
+    };
+    set("name", t.name || "Timer");
+    set("time", formatTimerClock(secs));
+    set("time_short", formatTimerShort(secs));
+    set("seconds", Math.trunc(secs));
+    set("state", timerRunState(t));
+    set("visible", timerIsVisible(t) ? "true" : "false");
+    set("mode", t.config?.mode || "duration");
+    set(
+      "duration",
       (t.config?.mode || "duration") === "clock"
         ? t.config?.targetTime || ""
-        : formatTimerClock(Number(t.config?.durationSec) || 0);
-    vars[`highascg_timer_${i}_screens`] = timerScreenLabel(t);
-    vars[`highascg_timer_${i}_id`] = t.timerId || "";
+        : formatTimerClock(Number(t.config?.durationSec) || 0),
+    );
+    set("screens", timerScreenLabel(t));
+    set("id", t.timerId || "");
   }
   return vars;
 }
 
-/** Option value meaning "whichever timer is in slot N" — see resolveTimer. */
-export function timerSlotOptionId(slot) {
-  return `slot:${Math.max(1, parseInt(String(slot), 10) || 1)}`;
-}
-
 /**
- * Dropdown choices for the timer-picking actions.
- *
- * Two stable forms come first: `""` = the first timer, and `slot:N` = whatever timer occupies
- * variable slot N (`highascg_timer_N_*`, ordered screen-then-layer). Preset buttons use the slot
- * form so a caption reading `$(…:highascg_timer_N_name)` and the action it fires always mean the
- * same timer — and both survive a show rebuilt with new timer ids. Picking a timer by id still
- * works for buttons that must stay pinned to one specific timer.
+ * Dropdown choices: the first-timer default plus every timer that exists. No placeholder rows —
+ * a show with two timers offers two.
  * @param {{ _screenTimers?: object[] }} instance
  */
 export function buildScreenTimerDropdown(instance) {
   const timers = sortTimers(instance?._screenTimers || []);
-  const choices = [{ id: "", label: "First timer (slot 1)" }];
-  for (let slot = 1; slot <= TIMER_VARIABLE_SLOTS; slot += 1) {
-    const t = timers[slot - 1];
-    choices.push({
-      id: timerSlotOptionId(slot),
-      label: `Slot ${slot}${t ? ` — currently "${(t.name || t.timerId).slice(0, 32)}"` : " (empty)"}`,
-    });
-  }
+  const choices = [{ id: "", label: "First timer" }];
   timers.forEach((t, i) => {
     const screens = timerScreenLabel(t);
     choices.push({
       id: t.timerId,
-      label: `${(t.name || `Timer ${i + 1}`).slice(0, 48)} — this timer only${screens ? ` · screen ${screens}` : ""}`,
+      label: `${(t.name || `Timer ${i + 1}`).slice(0, 48)}${screens ? ` · screen ${screens}` : ""}`,
     });
   });
   return { choices, default: "", minChoicesForSearch: 8 };
 }
 
 /**
- * Resolve an action's timer option to a live record: a timer id, `slot:N`, or empty for the first.
+ * Resolve an action's timer option to a live record: a timer id, or empty for the first timer.
  * @param {{ _screenTimers?: object[] }} instance
  * @param {string} timerIdOption
  * @returns {object|null}
@@ -295,7 +268,5 @@ export function resolveTimer(instance, timerIdOption) {
   const timers = sortTimers(instance?._screenTimers || []);
   const wanted = String(timerIdOption || "").trim();
   if (!wanted) return timers[0] || null;
-  const slotMatch = /^slot:(\d+)$/.exec(wanted);
-  if (slotMatch) return timers[parseInt(slotMatch[1], 10) - 1] || null;
   return timers.find((t) => t.timerId === wanted) || null;
 }

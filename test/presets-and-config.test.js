@@ -36,7 +36,14 @@ function stubInstance() {
       screenLabels: ["Stage", ""],
       programChannels: [1, 3],
     },
-    _screenTimers: [],
+    _screenTimers: [
+      {
+        timerId: "5c12cb77-aaaa",
+        name: "Timer S2",
+        config: { mode: "duration", durationSec: 600 },
+        screens: { 1: { channel: 3, layer: 980, visible: true } },
+      },
+    ],
     getLookIdForSlot(slot) {
       return this._lookSlots[String(slot)] || "";
     },
@@ -178,45 +185,56 @@ describe("screen timer presets", () => {
     assert.match(section.name, /Screen timers/);
   });
 
-  it("offers transport, set-time and show/hide buttons", () => {
+  it("builds one button set per timer that exists — no placeholder slots", () => {
     const keys = Object.keys(presets).filter((k) =>
       k.startsWith("screen_timer_"),
     );
-    assert.ok(keys.includes("screen_timer_1_display"));
-    assert.ok(keys.includes("screen_timer_1_start_pause"));
-    assert.ok(keys.includes("screen_timer_1_reset"));
-    assert.ok(keys.includes("screen_timer_1_visible"));
-    assert.ok(keys.includes("screen_timer_pick_set_time"));
+    // The one live timer in the stub, keyed by its id — not by an index.
+    assert.ok(keys.includes("screen_timer_5c12cb77_display"));
+    assert.ok(keys.includes("screen_timer_5c12cb77_start_pause"));
+    assert.ok(keys.includes("screen_timer_5c12cb77_reset"));
+    assert.ok(keys.includes("screen_timer_5c12cb77_visible"));
+    assert.ok(keys.includes("screen_timer_5c12cb77_set_time"));
+    // Owner: "no place holders" — nothing for timers that do not exist.
+    assert.equal(keys.filter((k) => /^screen_timer_\d+_/.test(k)).length, 0);
+    assert.equal(keys.filter((k) => k.includes("slot")).length, 0);
+    // Choose-the-timer buttons remain so a page can be built before the show.
+    assert.ok(keys.includes("screen_timer_pick_set_time") === false);
+    assert.ok(keys.includes("screen_timer_pick_start"));
     assert.ok(keys.includes("screen_timer_pick_add_minute"));
   });
 
-  it("captions read variables so they tick and follow renames", () => {
+  it("with no timers configured, only the choose-the-timer buttons exist", () => {
+    const bare = stubInstance();
+    bare._screenTimers = [];
+    const { presets: p2 } = getPresets(bare);
+    const keys = Object.keys(p2).filter((k) => k.startsWith("screen_timer_"));
+    assert.ok(keys.length > 0, "the section must not vanish");
+    assert.ok(keys.every((k) => k.startsWith("screen_timer_pick_")));
+  });
+
+  it("captions read that timer's variables so they tick and follow renames", () => {
+    const display = presets.screen_timer_5c12cb77_display;
+    assert.match(display.style.text, /highascg_timer_5c12cb77_name/);
+    assert.match(display.style.text, /highascg_timer_5c12cb77_time_short/);
     assert.match(
-      presets.screen_timer_1_display.style.text,
-      /highascg_timer_1_name/,
-    );
-    assert.match(
-      presets.screen_timer_1_display.style.text,
-      /highascg_timer_1_time_short/,
-    );
-    assert.match(
-      presets.screen_timer_1_start_pause.style.text,
-      /highascg_timer_1_time_short/,
+      presets.screen_timer_5c12cb77_start_pause.style.text,
+      /highascg_timer_5c12cb77_time_short/,
     );
   });
 
-  it("slot buttons bind to the slot, not to a variable stuffed into a dropdown", () => {
-    const act = presets.screen_timer_1_start_pause.steps[0].down[0];
+  it("buttons carry the timer id, and a variable is never stuffed into a dropdown", () => {
+    const act = presets.screen_timer_5c12cb77_start_pause.steps[0].down[0];
     assert.equal(act.actionId, "screen_timer_start_pause");
-    assert.equal(act.options.timer, "slot:1");
+    assert.equal(act.options.timer, "5c12cb77-aaaa");
     assert.doesNotMatch(
       String(act.options.timer),
       /\$\(/,
       "a dropdown cannot resolve a variable",
     );
 
-    const vis = presets.screen_timer_1_visible.steps[0].down[0];
-    assert.equal(vis.options.timer, "slot:1");
+    const vis = presets.screen_timer_5c12cb77_visible.steps[0].down[0];
+    assert.equal(vis.options.timer, "5c12cb77-aaaa");
     assert.equal(
       vis.options.fadeFrames,
       25,

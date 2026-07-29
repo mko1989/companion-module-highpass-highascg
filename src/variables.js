@@ -354,7 +354,6 @@ export function getInitialVariableDefinitions() {
     ...CONNECTION_VARIABLE_DEFINITIONS,
     ...TIMELINE_VARIABLE_DEFINITIONS,
     ...STREAMING_CHANNEL_VARIABLE_DEFINITIONS,
-    ...screenTimerVariableDefinitions(),
     ...lookSlotLabelVariableDefinitions(),
     ...screenLabelVariableDefinitions(),
     ...UI_SELECTION_VARIABLE_DEFINITIONS,
@@ -366,6 +365,14 @@ export function getInitialVariableDefinitions() {
  */
 export default function getVariables(instance) {
   const base = getInitialVariableDefinitions();
+  // WO-386: one block per timer that exists — no placeholder slots. Re-registered by the poller
+  // whenever the set of timers changes.
+  Object.assign(
+    base,
+    variableDefinitionsToObject(
+      screenTimerVariableDefinitions(instance?._screenTimers || []),
+    ),
+  );
   /** @type {Record<string, { name: string }>} */
   const out = { ...base };
 

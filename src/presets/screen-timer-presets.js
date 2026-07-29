@@ -1,24 +1,19 @@
 /**
  * @file screen-timer-presets.js
- * Preset buttons for the HighAsCG screen timers (WO-384; actions and variables from WO-381).
+ * Preset buttons for the HighAsCG screen timers (WO-384, made fully dynamic by WO-386).
  *
- * Every caption reads a variable, never a value baked in at build time — a preset's style is
- * copied onto the button when it is dragged out, so a literal would freeze there and stop
+ * One button set per timer that actually exists — no placeholder slots (owner 2026-07-29: "in
+ * companion i see there are placeholder 8 timers. come one???!!! no place holders. everything
+ * should be dynamic"). The poller re-runs the preset build whenever the set of timers changes.
+ *
+ * Captions read that timer's own variables, never a value baked in at build time: a preset's style
+ * is copied onto the button when it is dragged out, so a literal would freeze there and stop
  * following the timer's name or its countdown.
- *
- * Two families:
- *  - "Timer N" buttons, bound to a slot (`highascg_timer_N_*`, ordered by screen then CG layer).
- *    They keep working when timers are recreated with new ids.
- *  - "Chosen timer" buttons, where the operator picks the timer in the action after dropping it.
  */
 
 import { combineRgb } from "@companion-module/base";
 import { connectionLabel } from "../connection-expressions.js";
-import { TIMER_VARIABLE_SLOTS, timerSlotOptionId } from "../screen-timers.js";
-
-/** How many per-slot button sets to publish. Keeping this below the variable count keeps the
- *  preset list readable — slots beyond it are still reachable via the "chosen timer" buttons. */
-const PRESET_SLOTS = 4;
+import { sortTimers, timerVariableId } from "../screen-timers.js";
 
 const WHITE = combineRgb(255, 255, 255);
 const BLACK = combineRgb(0, 0, 0);
@@ -33,24 +28,25 @@ const SLATE = combineRgb(30, 40, 55);
  */
 export function addScreenTimerPresets(instance, add) {
   const v = (variableId) => `$(${connectionLabel(instance)}:${variableId})`;
+  const timers = sortTimers(instance?._screenTimers || []);
 
-  // ---- Per-slot buttons -------------------------------------------------------------------
-  for (
-    let slot = 1;
-    slot <= Math.min(PRESET_SLOTS, TIMER_VARIABLE_SLOTS);
-    slot += 1
-  ) {
-    const slotOption = timerSlotOptionId(slot);
-    const nameVar = `highascg_timer_${slot}_name`;
-    const timeVar = `highascg_timer_${slot}_time_short`;
-    const stateVar = `highascg_timer_${slot}_state`;
+  for (const timer of timers) {
+    const id = timer.timerId;
+    const key = String(id)
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .slice(0, 8)
+      .toLowerCase();
+    const shown = String(timer.name || id).slice(0, 32);
+    const nameVar = v(timerVariableId(timer, "name"));
+    const timeVar = v(timerVariableId(timer, "time_short"));
+    const stateVar = v(timerVariableId(timer, "state"));
+    const visibleVar = v(timerVariableId(timer, "visible"));
 
-    // The readout: name over the live countdown, no action.
-    add("screen_timers", `screen_timer_${slot}_display`, {
+    add("screen_timers", `screen_timer_${key}_display`, {
       type: "simple",
-      name: `Timer ${slot}: display (name + countdown)`,
+      name: `${shown}: display (name + countdown)`,
       style: {
-        text: `${v(nameVar)}\\n${v(timeVar)}`,
+        text: `${nameVar}\\n${timeVar}`,
         size: "18",
         color: WHITE,
         bgcolor: SLATE,
@@ -59,12 +55,11 @@ export function addScreenTimerPresets(instance, add) {
       feedbacks: [],
     });
 
-    // Start / pause on one button, with the countdown on it.
-    add("screen_timers", `screen_timer_${slot}_start_pause`, {
+    add("screen_timers", `screen_timer_${key}_start_pause`, {
       type: "simple",
-      name: `Timer ${slot}: start / pause`,
+      name: `${shown}: start / pause`,
       style: {
-        text: `${v(timeVar)}\\n${v(stateVar)}`,
+        text: `${timeVar}\\n${stateVar}`,
         size: "18",
         color: WHITE,
         bgcolor: GREEN,
@@ -72,10 +67,7 @@ export function addScreenTimerPresets(instance, add) {
       steps: [
         {
           down: [
-            {
-              actionId: "screen_timer_start_pause",
-              options: { timer: slotOption },
-            },
+            { actionId: "screen_timer_start_pause", options: { timer: id } },
           ],
           up: [],
         },
@@ -83,31 +75,29 @@ export function addScreenTimerPresets(instance, add) {
       feedbacks: [],
     });
 
-    add("screen_timers", `screen_timer_${slot}_reset`, {
+    add("screen_timers", `screen_timer_${key}_reset`, {
       type: "simple",
-      name: `Timer ${slot}: reset`,
+      name: `${shown}: reset`,
       style: {
-        text: `RESET\\n${v(nameVar)}`,
+        text: `RESET\\n${nameVar}`,
         size: "14",
         color: WHITE,
         bgcolor: AMBER,
       },
       steps: [
         {
-          down: [
-            { actionId: "screen_timer_reset", options: { timer: slotOption } },
-          ],
+          down: [{ actionId: "screen_timer_reset", options: { timer: id } }],
           up: [],
         },
       ],
       feedbacks: [],
     });
 
-    add("screen_timers", `screen_timer_${slot}_visible`, {
+    add("screen_timers", `screen_timer_${key}_visible`, {
       type: "simple",
-      name: `Timer ${slot}: show / hide (fade)`,
+      name: `${shown}: show / hide (fade)`,
       style: {
-        text: `ON AIR\\n${v(`highascg_timer_${slot}_visible`)}`,
+        text: `ON AIR\\n${visibleVar}`,
         size: "14",
         color: WHITE,
         bgcolor: RED,
@@ -118,7 +108,7 @@ export function addScreenTimerPresets(instance, add) {
             {
               actionId: "screen_timer_visible",
               options: {
-                timer: slotOption,
+                timer: id,
                 screen: "",
                 mode: "toggle",
                 fadeFrames: 25,
@@ -130,9 +120,33 @@ export function addScreenTimerPresets(instance, add) {
       ],
       feedbacks: [],
     });
+
+    add("screen_timers", `screen_timer_${key}_set_time`, {
+      type: "simple",
+      name: `${shown}: set time`,
+      style: {
+        text: `SET\\n${nameVar}`,
+        size: "14",
+        color: WHITE,
+        bgcolor: SLATE,
+      },
+      steps: [
+        {
+          down: [
+            {
+              actionId: "screen_timer_set_time",
+              options: { timer: id, time: "05:00" },
+            },
+          ],
+          up: [],
+        },
+      ],
+      feedbacks: [],
+    });
   }
 
-  // ---- Buttons that ask for the timer in the action editor --------------------------------
+  // Buttons that ask for the timer in the action editor — the only ones that exist when no timers
+  // are configured, so a button can still be built ahead of the show.
   const chosen = [
     [
       "screen_timer_pick_start",
@@ -156,8 +170,8 @@ export function addScreenTimerPresets(instance, add) {
       BLACK,
     ],
   ];
-  for (const [key, name, caption, actionId, bgcolor] of chosen) {
-    add("screen_timers", key, {
+  for (const [presetKey, name, caption, actionId, bgcolor] of chosen) {
+    add("screen_timers", presetKey, {
       type: "simple",
       name,
       style: { text: caption, size: "14", color: WHITE, bgcolor },
@@ -165,24 +179,6 @@ export function addScreenTimerPresets(instance, add) {
       feedbacks: [],
     });
   }
-
-  add("screen_timers", "screen_timer_pick_set_time", {
-    type: "simple",
-    name: "Set time (choose timer + time)",
-    style: { text: "SET\\n05:00", size: "14", color: WHITE, bgcolor: SLATE },
-    steps: [
-      {
-        down: [
-          {
-            actionId: "screen_timer_set_time",
-            options: { timer: "", time: "05:00" },
-          },
-        ],
-        up: [],
-      },
-    ],
-    feedbacks: [],
-  });
 
   add("screen_timers", "screen_timer_pick_add_minute", {
     type: "simple",

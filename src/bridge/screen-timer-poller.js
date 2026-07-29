@@ -59,8 +59,14 @@ class ScreenTimerPoller {
       const nextIds = this.instance._screenTimers
         .map((t) => t.timerId)
         .join(",");
-      // The action dropdowns list the timers by name — rebuild them only when the set changes.
-      if (prevIds !== nextIds) this.instance.updateActions();
+      // The action dropdowns list the timers by name, the variable definitions are one block per
+      // timer, and the presets are one button set per timer — all rebuilt when the set changes.
+      if (prevIds !== nextIds) {
+        this.instance.updateActions();
+        this.instance.updateVariables();
+        this.instance.updatePresets();
+        this._lastSig = ""; // definitions changed — force a value publish for the new ids
+      }
       this._publish();
     } catch (e) {
       this.instance.log("debug", `screen-timer poller: ${e.message || e}`);
