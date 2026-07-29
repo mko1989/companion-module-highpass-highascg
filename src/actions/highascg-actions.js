@@ -12,6 +12,7 @@ import getMiscActions from "./misc-actions.js";
 import getStreamingActions from "./streaming-actions.js";
 import getMultiviewActions from "./multiview-actions.js";
 import getCountdownActions from "./countdown-actions.js";
+import getScreenTimerActions from "./screen-timer-actions.js";
 
 export default function (instance) {
   return {
@@ -24,5 +25,6 @@ export default function (instance) {
     ...getStreamingActions(instance),
     ...getMultiviewActions(instance),
     ...getCountdownActions(instance),
+    ...getScreenTimerActions(instance),
   };
 }

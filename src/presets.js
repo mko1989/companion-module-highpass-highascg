@@ -2,12 +2,13 @@ import { combineRgb } from "@companion-module/base";
 import { addComposePreviewPresets } from "./presets/compose-preview-presets.js";
 import { addLookPreviewLinkedPresets } from "./presets/look-preview-linked-presets.js";
 import { addPrvTakePresets } from "./presets/prv-take-presets.js";
-import { connectionVariableExpression, connectionLabel } from "./connection-expressions.js";
-import { isComposePreviewButtonsEnabled } from "./compose-preview-channels.js";
 import {
-  mainScopeShortLabel,
-  normalizeMainScope,
-} from "./look-scope.js";
+  connectionVariableExpression,
+  connectionLabel,
+} from "./connection-expressions.js";
+import { isComposePreviewButtonsEnabled } from "./compose-preview-channels.js";
+import { mainScopeShortLabel, normalizeMainScope } from "./look-scope.js";
+import { lookLabelVariableId, lookSlotLabelVariableId } from "./look-vars.js";
 
 /**
  * @param {import('./instance.js').HighAsCGInstance} instance
@@ -36,10 +37,22 @@ export default function getPresets(instance) {
   const structure = [
     { id: "playout", name: "Playout", definitions: [] },
     { id: "looks", name: "HighAsCG · Looks", definitions: [] },
-    { id: "look_slots", name: "HighAsCG · Look Slots (PTZ style)", definitions: [] },
-    { id: "selected_layer", name: "HighAsCG · Selected layer", definitions: [] },
+    {
+      id: "look_slots",
+      name: "HighAsCG · Look Slots (PTZ style)",
+      definitions: [],
+    },
+    {
+      id: "selected_layer",
+      name: "HighAsCG · Selected layer",
+      definitions: [],
+    },
     { id: "timeline", name: "HighAsCG · Timeline", definitions: [] },
-    { id: "compose_preview", name: "HighAsCG · Compose preview", definitions: [] },
+    {
+      id: "compose_preview",
+      name: "HighAsCG · Compose preview",
+      definitions: [],
+    },
     {
       id: "compose_preview_quadrants",
       name: "HighAsCG · Compose preview · Quadrants",
@@ -81,7 +94,9 @@ export default function getPresets(instance) {
     feedbacks: [],
   });
 
-  const looks = Array.isArray(instance._presetLooks) ? instance._presetLooks : [];
+  const looks = Array.isArray(instance._presetLooks)
+    ? instance._presetLooks
+    : [];
   const usedKeys = new Set();
   looks.forEach((look) => {
     let base = presetKeyFromLookId(look.id);
@@ -101,7 +116,11 @@ export default function getPresets(instance) {
       type: "simple",
       name: `${display} · ${scopeTag}`,
       style: {
-        text: `${display}\\n${scopeTag}`,
+        // WO-381: the NAME comes from a variable, not baked in. A preset's style is copied onto
+        // the button when it is dragged out, so a literal name freezes there and a renamed look
+        // keeps its old caption forever (owner: "when a look gets a diferent title it still
+        // stays look 1 in companion").
+        text: `$(${connectionLabel(instance)}:${lookLabelVariableId(look.id)})\\n${scopeTag}`,
         size: "14",
         color: combineRgb(255, 255, 255),
         bgcolor: combineRgb(0, 0, 0),
@@ -157,7 +176,8 @@ export default function getPresets(instance) {
       type: "simple",
       name: `Slot ${slot}: ${label}`,
       style: {
-        text: `L${slot}\\n${label}`,
+        // WO-381: follows both a rename AND the look being moved to another slot.
+        text: `L${slot}\\n$(${connectionLabel(instance)}:${lookSlotLabelVariableId(slot)})`,
         size: "14",
         color: combineRgb(255, 255, 255),
         bgcolor: combineRgb(0, 0, 0),

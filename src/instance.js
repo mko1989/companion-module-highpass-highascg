@@ -16,12 +16,12 @@ import {
   pruneDeckToSceneIds,
   refreshDeckLookNamesFromProject,
 } from "./look-sync.js";
-import { syncLookLabelVariables } from "./look-vars.js";
-import { LookAirFrameCache } from "./look-air-frame.js";
 import {
-  extractProjectScenes,
-  extractSceneDeck,
-} from "./project-looks.js";
+  syncLookLabelVariables,
+  syncLookSlotLabelVariables,
+} from "./look-vars.js";
+import { LookAirFrameCache } from "./look-air-frame.js";
+import { extractProjectScenes, extractSceneDeck } from "./project-looks.js";
 import { sendCompanionHello } from "./bridge/companion-hello.js";
 
 class HighAsCGInstance extends InstanceBase {
@@ -53,6 +53,13 @@ class HighAsCGInstance extends InstanceBase {
     /** @type {string} — when look ids / screen layout change (triggers preset catalog rebuild) */
     this._looksCatalogSig = "";
     this._lookAirFrames = new LookAirFrameCache(this);
+    /** @type {object[]} — screen timers from GET /api/timers/list, kept sorted (screen, layer) */
+    this._screenTimers = [];
+  }
+
+  /** Re-read the screen timers now (after an action changed one), refreshing their variables. */
+  refreshScreenTimers() {
+    void this.bridge?.screenTimerPoller?.fetchNow();
   }
 
   /**
@@ -132,9 +139,7 @@ class HighAsCGInstance extends InstanceBase {
     if (hostChanged || backupChanged) {
       this.connectionRouter?.resetTarget();
       this.initConnectionRouter();
-    } else if (
-      !!prev.hot_backup_enabled !== !!this.config.hot_backup_enabled
-    ) {
+    } else if (!!prev.hot_backup_enabled !== !!this.config.hot_backup_enabled) {
       this.initConnectionRouter();
     }
 
@@ -279,6 +284,8 @@ class HighAsCGInstance extends InstanceBase {
       used.add(id);
     }
     this._lookSlots = next;
+    // WO-381: preset button text reads these, so they must follow every slot change.
+    syncLookSlotLabelVariables(this);
     this.checkFeedbacks("look_slot_on_pgm", "look_slot_on_prv");
   }
 
@@ -346,7 +353,10 @@ class HighAsCGInstance extends InstanceBase {
         const body = await this.bridge.api.getProject();
         scenes = this._scenesFromProjectBody(body);
       } catch (e) {
-        this.log("debug", `reloadProjectLooksCache GET /api/project: ${e.message || e}`);
+        this.log(
+          "debug",
+          `reloadProjectLooksCache GET /api/project: ${e.message || e}`,
+        );
       }
       this._setProjectScenesCache(scenes);
       this.log(
@@ -420,6 +430,7 @@ class HighAsCGInstance extends InstanceBase {
     this.syncLookSlots();
     this.updateVariables();
     syncLookLabelVariables(this, this._presetLooks);
+    syncLookSlotLabelVariables(this);
 
     const catalogSig = this._looksCatalogSignature(this._presetLooks);
     const catalogChanged = catalogSig !== this._looksCatalogSig;
@@ -460,9 +471,11 @@ class HighAsCGInstance extends InstanceBase {
     if (this._refreshPresetLooksPromise) {
       return this._refreshPresetLooksPromise;
     }
-    this._refreshPresetLooksPromise = this._refreshPresetLooksImpl().finally(() => {
-      this._refreshPresetLooksPromise = null;
-    });
+    this._refreshPresetLooksPromise = this._refreshPresetLooksImpl().finally(
+      () => {
+        this._refreshPresetLooksPromise = null;
+      },
+    );
     return this._refreshPresetLooksPromise;
   }
 

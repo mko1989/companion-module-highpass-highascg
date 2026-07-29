@@ -87,9 +87,7 @@ class HighAsCGApi {
   }
 
   async getTimelinePlayback(timelineId) {
-    return this._get(
-      `/api/timelines/${encodeURIComponent(timelineId)}/state`,
-    );
+    return this._get(`/api/timelines/${encodeURIComponent(timelineId)}/state`);
   }
 
   /**
@@ -285,14 +283,18 @@ class HighAsCGApi {
     const body = {
       action: opts.action === "stop" ? "stop" : "start",
     };
-    if (opts.rtmpServerUrl != null) body.rtmpServerUrl = String(opts.rtmpServerUrl);
+    if (opts.rtmpServerUrl != null)
+      body.rtmpServerUrl = String(opts.rtmpServerUrl);
     if (opts.streamKey != null) body.streamKey = String(opts.streamKey);
     if (opts.quality != null) body.quality = String(opts.quality);
     if (opts.videoCodec != null) body.videoCodec = String(opts.videoCodec);
-    if (opts.videoBitrateKbps != null) body.videoBitrateKbps = Number(opts.videoBitrateKbps);
-    if (opts.encoderPreset != null) body.encoderPreset = String(opts.encoderPreset);
+    if (opts.videoBitrateKbps != null)
+      body.videoBitrateKbps = Number(opts.videoBitrateKbps);
+    if (opts.encoderPreset != null)
+      body.encoderPreset = String(opts.encoderPreset);
     if (opts.audioCodec != null) body.audioCodec = String(opts.audioCodec);
-    if (opts.audioBitrateKbps != null) body.audioBitrateKbps = Number(opts.audioBitrateKbps);
+    if (opts.audioBitrateKbps != null)
+      body.audioBitrateKbps = Number(opts.audioBitrateKbps);
     if (opts.outputId != null) body.outputId = String(opts.outputId);
     return this._post("/api/streaming-channel/rtmp", body);
   }
@@ -316,10 +318,13 @@ class HighAsCGApi {
     if (opts.outputId != null) body.outputId = String(opts.outputId);
     if (opts.crf != null) body.crf = Number(opts.crf);
     if (opts.videoCodec != null) body.videoCodec = String(opts.videoCodec);
-    if (opts.videoBitrateKbps != null) body.videoBitrateKbps = Number(opts.videoBitrateKbps);
-    if (opts.encoderPreset != null) body.encoderPreset = String(opts.encoderPreset);
+    if (opts.videoBitrateKbps != null)
+      body.videoBitrateKbps = Number(opts.videoBitrateKbps);
+    if (opts.encoderPreset != null)
+      body.encoderPreset = String(opts.encoderPreset);
     if (opts.audioCodec != null) body.audioCodec = String(opts.audioCodec);
-    if (opts.audioBitrateKbps != null) body.audioBitrateKbps = Number(opts.audioBitrateKbps);
+    if (opts.audioBitrateKbps != null)
+      body.audioBitrateKbps = Number(opts.audioBitrateKbps);
     return this._post("/api/streaming-channel/record", body);
   }
 
@@ -372,6 +377,42 @@ class HighAsCGApi {
    */
   async getCountdownList() {
     return this._get("/api/countdown/list");
+  }
+
+  /* ---- Screen timers (WO-210 registry: /api/timers/*) -------------------------------
+   * These are the timers the HighAsCG web UI owns in its Timers dock and screen-timer
+   * Inspector — assigned to screens, one CG layer each in the 980-989 band. Distinct from
+   * the older channel/layer `countdown*` calls above. */
+
+  /** GET /api/timers/list — every assigned timer with its config, runtime and screens. */
+  async getScreenTimers() {
+    return this._get("/api/timers/list");
+  }
+
+  /**
+   * POST /api/timers/cmd — transport, fanned out by the server to every assigned screen.
+   * @param {string} timerId
+   * @param {'start'|'pause'|'reset'} cmd
+   */
+  async screenTimerCmd(timerId, cmd) {
+    return this._post("/api/timers/cmd", { timerId, cmd });
+  }
+
+  /**
+   * POST /api/timers/visible — show/hide on one screen; `fadeFrames > 0` ramps the opacity.
+   * @param {{ timerId: string, screenIdx: number, visible: boolean, fadeFrames?: number, opacity?: number }} body
+   */
+  async screenTimerVisible(body) {
+    return this._post("/api/timers/visible", body);
+  }
+
+  /**
+   * POST /api/timers/assign — re-assigning a timer to a screen it already occupies merges
+   * `config` and emits the CG UPDATE. This is how the time is set.
+   * @param {{ timerId: string, screenIdx: number, config?: object, name?: string }} body
+   */
+  async screenTimerAssign(body) {
+    return this._post("/api/timers/assign", body);
   }
 }
 
