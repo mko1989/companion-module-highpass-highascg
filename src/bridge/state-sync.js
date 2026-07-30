@@ -273,6 +273,16 @@ class HighAsCGStateSync {
       this._pushServerVariables(filtered);
     }
 
+    // WO-394: no direct AMCP socket anymore — the app's own Caspar link state feeds the
+    // `caspar_connected` feedback instead.
+    if (data.caspar !== undefined) {
+      const was = !!this.instance._casparStatus?.connected;
+      this.instance._casparStatus = data.caspar || null;
+      if (was !== !!data.caspar?.connected) {
+        this.instance.checkFeedbacks("caspar_connected");
+      }
+    }
+
     const prevLive = this.instance._sceneLive;
 
     if (data.timeline !== undefined) {

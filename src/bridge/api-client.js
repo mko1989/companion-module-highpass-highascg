@@ -260,6 +260,15 @@ class HighAsCGApi {
     return this._post("/api/variables/custom", { labels });
   }
 
+  /**
+   * POST /api/amcp/raw — one raw AMCP line, sent through the app (normalized, tracked,
+   * failover-aware). The module's only AMCP surface since WO-394.
+   * @param {string} cmd
+   */
+  async amcpRaw(cmd) {
+    return this._post("/api/amcp/raw", { cmd: String(cmd) });
+  }
+
   /** GET /api/streaming-channel — full status (RTMP active, record sessions, etc.). */
   async getStreamingChannelStatus() {
     return this._get("/api/streaming-channel");

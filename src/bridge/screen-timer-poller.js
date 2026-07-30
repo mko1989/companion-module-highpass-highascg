@@ -31,7 +31,7 @@ class ScreenTimerPoller {
   }
 
   _enabled() {
-    return !!this.instance.config?.highascg_enabled;
+    return true;
   }
 
   async fetchNow() {

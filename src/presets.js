@@ -1,5 +1,6 @@
 import { combineRgb } from "@companion-module/base";
 import { addComposePreviewPresets } from "./presets/compose-preview-presets.js";
+import { addStreamingPresets } from "./presets/streaming-presets.js";
 import { addLookPreviewLinkedPresets } from "./presets/look-preview-linked-presets.js";
 import { addPrvTakePresets } from "./presets/prv-take-presets.js";
 import { addScreenTimerPresets } from "./presets/screen-timer-presets.js";
@@ -40,7 +41,7 @@ function presetKeyFromLookId(id) {
 export default function getPresets(instance) {
   const presets = {};
   const structure = [
-    { id: "playout", name: "Playout", definitions: [] },
+    { id: "streaming", name: "HighAsCG · Stream & Record", definitions: [] },
     { id: "looks", name: "HighAsCG · Looks", definitions: [] },
     {
       id: "look_slots",
@@ -77,28 +78,9 @@ export default function getPresets(instance) {
     section(sectionId).definitions.push(key);
   };
 
-  add("playout", "play_clip", {
-    type: "simple",
-    name: "Play Ch1 L10",
-    style: {
-      text: "PLAY\\nCH1 L10",
-      size: "14",
-      color: combineRgb(255, 255, 255),
-      bgcolor: combineRgb(0, 100, 0),
-    },
-    steps: [
-      {
-        down: [
-          {
-            actionId: "play",
-            options: { channel: 1, layer: 10, clip: "", loop: false },
-          },
-        ],
-        up: [],
-      },
-    ],
-    feedbacks: [],
-  });
+  // WO-394 removed the direct-AMCP play preset; WO-395 fills "streaming" with the
+  // configured stream/record outputs.
+  addStreamingPresets(add, instance);
 
   const looks = Array.isArray(instance._presetLooks)
     ? instance._presetLooks

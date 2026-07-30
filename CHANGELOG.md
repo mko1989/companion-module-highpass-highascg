@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.8] - 2026-07-30
+
+### Changed (WO-394 — HighAsCG-only module)
+- The module is a **HighAsCG module**: the direct CasparCG TCP/AMCP client is gone.
+  `play`/`stop`/`clear` actions removed; the **Raw AMCP Command** action remains and is sent
+  through the app (`POST /api/amcp/raw` — normalized, playback-tracked, failover-aware).
+- Config: **AMCP Port** and **Use HighAsCG Bridge** fields removed (the bridge IS the module);
+  "+ CasparCG" framing dropped from manifest/README.
+- `caspar_connected` feedback keeps its id but now reflects the app's own Caspar link
+  (`state.caspar.connected`) instead of the removed direct socket.
+
+### Added (WO-395 — configured-output stream/record control)
+- `rtmp_start`/`record_start`/`record_stop` options are now **dropdowns of the outputs
+  actually configured on the box** (from `GET /api/streaming-channel` `outputs`) — no
+  free-text URL/key/codec placeholders; credentials resolve server-side on start.
+- `streaming_active`/`recording_active` feedbacks accept an optional **Output** filter
+  ("Any" default keeps old buttons working).
+- New preset section **HighAsCG · Stream & Record**: Start (with live tally) + Stop buttons
+  per configured stream/record output, regenerated when the output catalog changes.
+
+### Fixed
+- Streaming/record status was **frozen while the WebSocket was up**: the poller only runs as
+  a WS-down fallback but the `streaming_channel` broadcast was never handled. Feedbacks and
+  variables now update live from the broadcast.
+- `highascg_record_state` never left `idle` (the server's `sessions` list has no `active`
+  flag) — now derived from `record.active`/`activeOutputs`.
+
 ## [1.0.4] - 2026-07-25
 
 ### Removed

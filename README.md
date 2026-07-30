@@ -1,11 +1,11 @@
 # Companion Module: HighPass HighAsCG
 
-This module connects **Bitfocus Companion** to:
+This module connects **Bitfocus Companion** to a **HighAsCG** playout box over **HTTP +
+WebSocket**: looks/scene take, timelines, multiview, stream/record outputs, screen timers,
+mixer-style volume via `/api`, and live **variables** synced from the app.
 
-1. **CasparCG** over **TCP/AMCP** — low-latency playout commands (PLAY, STOP, CLEAR, raw AMCP)
-2. **HighAsCG** (standalone app) over **HTTP + WebSocket** — scene take, timelines, multiview, mixer-style volume via `/api`, and live **variables** synced from the app
-
-CasparCG and HighAsCG run on the **same machine**, so one **Box Host** covers both connections.
+A **Raw AMCP Command** action remains as an escape hatch — it is sent through the app
+(`POST /api/amcp/raw`), not a direct Caspar socket (WO-394).
 
 ## Installation
 
@@ -19,10 +19,8 @@ This builds the module, installs it to Companion's modules directory, and update
 
 ## Configuration
 
-- **Box Host** — IP of the HighAsCG/Caspar box (default `127.0.0.1`)
-- **AMCP Port** — CasparCG server port (default `5250`)
-- **HighAsCG HTTP Port** — Node bridge port (default `4200`)
-- **Use HighAsCG Bridge** — turn off if you only need direct AMCP
+- **Box Host** — IP of the HighAsCG box (default `127.0.0.1`)
+- **HighAsCG HTTP Port** — app HTTP/WS port (default `4200`)
 - **Compose preview on Stream Deck buttons** — when enabled (default), live JPEG compose previews update button images over the WebSocket bridge (~0.5–1.5 Mbps per active channel). Disable on remote Companion hosts or when you only need look/scene actions and text labels without live thumbnails. Look recall buttons still show PGM/PRV borders and names when preview is off; on-air live video on look buttons requires this option on
 
 Compose preview presets and variables are generated only for **CasparCG channels in your HighAsCG channel map** (PGM + PRV outputs), not a fixed ch1–8 list.

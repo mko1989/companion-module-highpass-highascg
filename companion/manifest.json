@@ -3,7 +3,7 @@
 	"type": "connection",
 	"name": "highpass-highascg",
 	"shortname": "highascg",
-	"description": "Bridge between Companion, HighAsCG app, and CasparCG Server",
+	"description": "Companion module for the HighAsCG playout app",
 	"version": "1.0.5",
 	"license": "MIT",
 	"manufacturer": "HighPass",
@@ -15,8 +15,8 @@
 			"email": "m.wardecki89@gmail.com"
 		}
 	],
-	"products": ["CasparCG + HighAsCG"],
-	"keywords": ["HighPass", "CasparCG", "Video", "Playout", "HighAsCG"],
+	"products": ["HighAsCG"],
+	"keywords": ["HighPass", "Video", "Playout", "HighAsCG"],
 	"runtime": {
 		"type": "node22",
 		"api": "nodejs-ipc",

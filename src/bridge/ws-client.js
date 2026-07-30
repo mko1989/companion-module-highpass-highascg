@@ -38,12 +38,21 @@ class HighAsCGWs {
         const t = msg.type;
         if (t === "state" && msg.data) {
           this.instance.handleBridgeState(msg.data);
-        } else if (t === "variable_update" && msg.data && typeof msg.data === "object") {
+        } else if (
+          t === "variable_update" &&
+          msg.data &&
+          typeof msg.data === "object"
+        ) {
           this.instance.updateVariablesFromBridge(msg.data);
-        } else if (t === "selection_sync" && msg.data && typeof msg.data === "object") {
+        } else if (
+          t === "selection_sync" &&
+          msg.data &&
+          typeof msg.data === "object"
+        ) {
           const d = msg.data;
-          const flat =
-            Object.keys(d).some((k) => String(k).startsWith("ui_selection_"));
+          const flat = Object.keys(d).some((k) =>
+            String(k).startsWith("ui_selection_"),
+          );
           if (flat) {
             this.instance.updateVariablesFromBridge(d);
           }
@@ -58,7 +67,11 @@ class HighAsCGWs {
           if (typeof this.instance.applySceneDeck === "function") {
             this.instance.applySceneDeck(msg.data);
           }
-        } else if (t === "project_sync" && msg.data && typeof msg.data === "object") {
+        } else if (
+          t === "project_sync" &&
+          msg.data &&
+          typeof msg.data === "object"
+        ) {
           if (typeof this.instance.applyProjectSync === "function") {
             this.instance.applyProjectSync(msg.data);
           }
@@ -70,14 +83,27 @@ class HighAsCGWs {
           this.instance.handleBridgeState({
             timeline: { tick: msg.data },
           });
+        } else if (
+          t === "streaming_channel" &&
+          msg.data &&
+          typeof msg.data === "object"
+        ) {
+          // WO-395: the server broadcasts the full streaming-channel status on every
+          // start/stop/log — without this handler feedbacks only updated while WS was DOWN
+          // (the poller early-returns when WS is up).
+          this.instance.bridge?.streamingChannelPoller?.applyStatus(msg.data);
         } else if (t === "compose.preview" && msg.data?.channel != null) {
           if (this.ws?.readyState !== 1) {
-            this.instance.bridge?.previewPoller?.scheduleFetch(msg.data.channel);
+            this.instance.bridge?.previewPoller?.scheduleFetch(
+              msg.data.channel,
+            );
           }
         } else if (t === "change" && msg.data && msg.data.path != null) {
           const path = String(msg.data.path);
           if (path === "scene.live") {
-            this.instance.handleBridgeState({ scene: { live: msg.data.value } });
+            this.instance.handleBridgeState({
+              scene: { live: msg.data.value },
+            });
           } else if (
             path === "scene.deck" ||
             path === "scene_deck" ||

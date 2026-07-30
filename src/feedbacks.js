@@ -1,8 +1,9 @@
 import { combineRgb } from "@companion-module/base";
+import { dataUriToRawBase64, resolveLookAirState } from "./look-air-state.js";
 import {
-  dataUriToRawBase64,
-  resolveLookAirState,
-} from "./look-air-state.js";
+  streamOutputChoices,
+  recordOutputChoices,
+} from "./streaming-outputs.js";
 
 /**
  * @file feedbacks.js
@@ -46,8 +47,7 @@ export default function (instance) {
         const ch = instance._channelMap?.programChannels?.[screenIdx];
         if (ch == null) return false;
         const entry = instance._sceneLive?.[String(ch)];
-        const sid =
-          entry?.sceneId != null ? String(entry.sceneId).trim() : "";
+        const sid = entry?.sceneId != null ? String(entry.sceneId).trim() : "";
         return sid === lookId;
       },
     },
@@ -120,8 +120,7 @@ export default function (instance) {
           if (pgmSid === lookId) return false;
         }
         const entry = instance._sceneLive?.[String(prvCh)];
-        const sid =
-          entry?.sceneId != null ? String(entry.sceneId).trim() : "";
+        const sid = entry?.sceneId != null ? String(entry.sceneId).trim() : "";
         return sid === lookId;
       },
     },
@@ -162,8 +161,7 @@ export default function (instance) {
         const ch = instance._channelMap?.programChannels?.[screenIdx];
         if (ch == null) return false;
         const entry = instance._sceneLive?.[String(ch)];
-        const sid =
-          entry?.sceneId != null ? String(entry.sceneId).trim() : "";
+        const sid = entry?.sceneId != null ? String(entry.sceneId).trim() : "";
         return sid === lookId;
       },
     },
@@ -215,15 +213,18 @@ export default function (instance) {
     },
     caspar_connected: {
       type: "boolean",
-      name: "CasparCG Direct Connected",
-      description: "Checks if the direct AMCP socket is connected",
+      name: "Caspar Connected (via HighAsCG)",
+      description:
+        "True when the HighAsCG app reports its Caspar server connected",
       defaultStyle: {
         bgcolor: combineRgb(0, 255, 0),
         color: combineRgb(0, 0, 0),
       },
       options: [],
       callback: () => {
-        return !!instance.tcp?.connected;
+        // WO-394: no direct AMCP socket anymore — the app reports this over the bridge
+        // (state.caspar.connected, captured by state-sync).
+        return !!instance._casparStatus?.connected;
       },
     },
     highascg_connected: {
@@ -292,9 +293,13 @@ export default function (instance) {
       callback: () => {
         const sync = instance.bridge?.sync;
         if (!sync) return false;
-        const ctx = String(sync.getServerVariable("ui_selection_context") ?? "").trim();
+        const ctx = String(
+          sync.getServerVariable("ui_selection_context") ?? "",
+        ).trim();
         if (ctx !== "scene_layer") return false;
-        const ch = Number(sync.getServerVariable("ui_selection_look_preview_channel"));
+        const ch = Number(
+          sync.getServerVariable("ui_selection_look_preview_channel"),
+        );
         const layer = Number(
           sync.getServerVariable("ui_selection_look_caspar_layer") ||
             sync.getServerVariable("ui_selection_look_layer_number"),
@@ -329,38 +334,88 @@ export default function (instance) {
       callback: (feedback) => {
         const sync = instance.bridge?.sync;
         if (!sync) return false;
-        const ctx = String(sync.getServerVariable("ui_selection_context") ?? "").trim();
+        const ctx = String(
+          sync.getServerVariable("ui_selection_context") ?? "",
+        ).trim();
         return ctx === String(feedback.options.context || "").trim();
       },
     },
 
     streaming_active: {
       type: "boolean",
-      name: "RTMP streaming is active",
-      description: "True when RTMP streaming is currently running",
+      name: "Stream output is active",
+      description:
+        "True when streaming is running (optionally a specific configured output)",
       defaultStyle: {
         bgcolor: combineRgb(200, 0, 0),
         color: combineRgb(255, 255, 255),
       },
-      options: [],
-      callback: () => {
-        const state = String(instance.getVariableValue("highascg_rtmp_state") ?? "").trim();
-        return state === "active";
+      options: [
+        {
+          type: "dropdown",
+          id: "output_id",
+          label: "Output",
+          default: "",
+          choices: [
+            { id: "", label: "Any" },
+            ...streamOutputChoices(instance).filter((c) => c.id),
+          ],
+        },
+      ],
+      callback: (feedback) => {
+        // WO-395: read the raw status (fed by WS broadcast + poller); variable fallback
+        // keeps pre-395 buttons alive until the first status arrives.
+        const rtmp = instance._streamingChannelStatus?.rtmp;
+        const wanted = String(feedback.options?.output_id || "").trim();
+        if (rtmp) {
+          if (!rtmp.active) return false;
+          return !wanted || String(rtmp.outputId || "") === wanted;
+        }
+        return (
+          String(
+            instance.getVariableValue("highascg_rtmp_state") ?? "",
+          ).trim() === "active"
+        );
       },
     },
 
     recording_active: {
       type: "boolean",
-      name: "Recording is active",
-      description: "True when recording is currently running",
+      name: "Record output is active",
+      description:
+        "True when recording is running (optionally a specific configured output)",
       defaultStyle: {
         bgcolor: combineRgb(200, 0, 0),
         color: combineRgb(255, 255, 255),
       },
-      options: [],
-      callback: () => {
-        const state = String(instance.getVariableValue("highascg_record_state") ?? "").trim();
-        return state === "recording";
+      options: [
+        {
+          type: "dropdown",
+          id: "output_id",
+          label: "Output",
+          default: "",
+          choices: [
+            { id: "", label: "Any" },
+            ...recordOutputChoices(instance).filter((c) => c.id),
+          ],
+        },
+      ],
+      callback: (feedback) => {
+        const record = instance._streamingChannelStatus?.record;
+        const wanted = String(feedback.options?.output_id || "").trim();
+        if (record) {
+          if (!record.active) return false;
+          if (!wanted) return true;
+          const ids = Array.isArray(record.activeOutputs)
+            ? record.activeOutputs.map(String)
+            : [];
+          return ids.includes(wanted);
+        }
+        return (
+          String(
+            instance.getVariableValue("highascg_record_state") ?? "",
+          ).trim() === "recording"
+        );
       },
     },
   };

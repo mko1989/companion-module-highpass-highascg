@@ -57,10 +57,7 @@ class ComposePreviewPoller {
   }
 
   _enabled() {
-    return (
-      !!this.instance.config.highascg_enabled &&
-      isComposePreviewButtonsEnabled(this.instance.config)
-    );
+    return isComposePreviewButtonsEnabled(this.instance.config);
   }
 
   _channels() {
@@ -153,7 +150,10 @@ class ComposePreviewPoller {
         });
       }
     } catch (e) {
-      this.instance.log("debug", `compose preview fetch ch${ch}: ${e.message || e}`);
+      this.instance.log(
+        "debug",
+        `compose preview fetch ch${ch}: ${e.message || e}`,
+      );
     }
   }
 

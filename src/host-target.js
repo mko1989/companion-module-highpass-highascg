@@ -1,5 +1,5 @@
 /**
- * Resolve box host from config (unified Caspar + HighAsCG on same machine).
+ * Resolve the HighAsCG box host from config.
  * Legacy `host` / `highascg_host` fields are still accepted.
  */
 
@@ -31,15 +31,6 @@ export function getBackupHost(config) {
   if (!config?.hot_backup_enabled) return null;
   const host = String(config?.backup_host ?? "").trim();
   return host || null;
-}
-
-/**
- * @param {Record<string, unknown>} config
- * @returns {number}
- */
-export function getAmcpPort(config) {
-  const port = Number(config?.port);
-  return Number.isFinite(port) && port > 0 ? port : 5250;
 }
 
 /**
