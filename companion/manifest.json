@@ -2,9 +2,9 @@
 	"id": "highpass-highascg",
 	"type": "connection",
 	"name": "highpass-highascg",
-	"shortname": "HighAsCG",
+	"shortname": "highascg",
 	"description": "Bridge between Companion, HighAsCG app, and CasparCG Server",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"license": "MIT",
 	"manufacturer": "HighPass",
 	"repository": "git+https://github.com/bitfocus/companion-module-highpass-highascg.git",
@@ -20,7 +20,7 @@
 	"runtime": {
 		"type": "node22",
 		"api": "nodejs-ipc",
-		"apiVersion": "2.1.0",
+		"apiVersion": "0.0.0",
 		"entrypoint": "../index.js"
 	},
 	"legacyIds": []
