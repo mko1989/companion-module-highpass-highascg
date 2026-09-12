@@ -104,6 +104,12 @@ class HighAsCGWs {
             this.instance.handleBridgeState({
               scene: { live: msg.data.value },
             });
+          } else if (path === "scene.liveAudioOnly") {
+            // WO-572 (HighAsCG) — audio-only looks: a separate live map from scene.live, since a
+            // screen can have one live video look and one live audio-only look at the same time.
+            this.instance.handleBridgeState({
+              scene: { liveAudioOnly: msg.data.value },
+            });
           } else if (
             path === "scene.deck" ||
             path === "scene_deck" ||

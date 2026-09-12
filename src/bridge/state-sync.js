@@ -52,6 +52,11 @@ function _deepMergeScene(a, b) {
   const out = { ...(a || {}) };
   if (!b || typeof b !== "object") return out;
   if (b.live != null) out.live = b.live;
+  // WO-572 (HighAsCG) — audio-only looks live in a SEPARATE map from scene.live (a screen can
+  // have one live video look and one live audio-only look at once); this was silently dropped
+  // here even after the server started sending it, so no fresh client (a reconnect, or this
+  // module's own HTTP getState() bootstrap) ever saw audio-only look state at all.
+  if (b.liveAudioOnly != null) out.liveAudioOnly = b.liveAudioOnly;
   if (b.deck != null) out.deck = b.deck;
   return out;
 }
@@ -185,11 +190,15 @@ class HighAsCGStateSync {
     this._syncVariableDefinitionsFromMerged();
   }
 
-  /** Expose latest scene.live + channel map for look PGM/PRV feedbacks. */
+  /** Expose latest scene.live (+ scene.liveAudioOnly) + channel map for look PGM/PRV feedbacks. */
   _syncFeedbackContext() {
     const scene = this._merged.scene || {};
     this.instance._sceneLive =
       scene.live && typeof scene.live === "object" ? scene.live : {};
+    this.instance._sceneLiveAudioOnly =
+      scene.liveAudioOnly && typeof scene.liveAudioOnly === "object"
+        ? scene.liveAudioOnly
+        : {};
     const prevLabels = JSON.stringify(
       this.instance._channelMap?.screenLabels || [],
     );

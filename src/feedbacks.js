@@ -1,5 +1,9 @@
 import { combineRgb } from "@companion-module/base";
-import { dataUriToRawBase64, resolveLookAirState } from "./look-air-state.js";
+import {
+  dataUriToRawBase64,
+  resolveLookAirState,
+  resolveAudioOnlyLookAirState,
+} from "./look-air-state.js";
 import {
   streamOutputChoices,
   recordOutputChoices,
@@ -122,6 +126,81 @@ export default function (instance) {
         const entry = instance._sceneLive?.[String(prvCh)];
         const sid = entry?.sceneId != null ? String(entry.sceneId).trim() : "";
         return sid === lookId;
+      },
+    },
+    // WO-572 (HighAsCG) — audio-only looks: additive per-screen audio, tracked in a SEPARATE live
+    // map (scene.liveAudioOnly) since a screen can have one live video look and one live
+    // audio-only look at once. Colors match the HighAsCG web UI's deck ring for the same state
+    // (cyan live / violet preview) — deliberately NOT the video look's red/green, so an operator
+    // never reads "this audio-only look is live" as "this replaced the screen".
+    look_audio_only_is_live: {
+      type: "boolean",
+      name: "Audio-only look is playing (PGM)",
+      description:
+        "True when this audio-only look id matches the live entry on the program channel for the given screen index (from HighAsCG scene.liveAudioOnly). Independent of any video look on the same screen.",
+      defaultStyle: {
+        bgcolor: combineRgb(34, 211, 238),
+        color: combineRgb(0, 0, 0),
+      },
+      options: [
+        {
+          type: "textinput",
+          id: "look_id",
+          label: "Look id",
+          default: "",
+        },
+        {
+          type: "number",
+          id: "screen_index",
+          label: "Screen index",
+          default: 0,
+          min: 0,
+          max: 7,
+        },
+      ],
+      callback: (feedback) => {
+        const lookId = String(feedback.options.look_id ?? "").trim();
+        if (!lookId) return false;
+        const screenIdx = Math.max(
+          0,
+          parseInt(feedback.options.screen_index, 10) || 0,
+        );
+        return resolveAudioOnlyLookAirState(instance, lookId, screenIdx).onPgm;
+      },
+    },
+    look_audio_only_is_preview: {
+      type: "boolean",
+      name: "Audio-only look is staged (PRV)",
+      description:
+        "True when this audio-only look is staged on the preview Caspar channel for the given screen index (from scene.liveAudioOnly). Hidden when the same audio-only look is already playing on PGM for that screen.",
+      defaultStyle: {
+        bgcolor: combineRgb(167, 139, 250),
+        color: combineRgb(0, 0, 0),
+      },
+      options: [
+        {
+          type: "textinput",
+          id: "look_id",
+          label: "Look id",
+          default: "",
+        },
+        {
+          type: "number",
+          id: "screen_index",
+          label: "Screen index",
+          default: 0,
+          min: 0,
+          max: 7,
+        },
+      ],
+      callback: (feedback) => {
+        const lookId = String(feedback.options.look_id ?? "").trim();
+        if (!lookId) return false;
+        const screenIdx = Math.max(
+          0,
+          parseInt(feedback.options.screen_index, 10) || 0,
+        );
+        return resolveAudioOnlyLookAirState(instance, lookId, screenIdx).onPrv;
       },
     },
     look_slot_on_pgm: {

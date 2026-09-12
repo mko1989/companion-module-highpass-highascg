@@ -128,6 +128,15 @@ class HighAsCGApi {
     return this._post("/api/scene/take", body);
   }
 
+  /**
+   * WO-572 (HighAsCG) — stop whichever audio-only look is live on a channel, leaving that
+   * channel's normal video look completely untouched (mirrors the web UI's mixer Stop button).
+   * @param {number} channel
+   */
+  async stopAudioOnlyLook(channel) {
+    return this._post("/api/scene/audio-only/stop", { channel });
+  }
+
   async timelinePlay(id, options = {}) {
     return this._post(`/api/timelines/${encodeURIComponent(id)}/play`, options);
   }

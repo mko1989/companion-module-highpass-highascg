@@ -302,5 +302,58 @@ export default function (instance) {
         instance.log("info", `Stored look "${lookId}" to slot ${slot}.`);
       },
     },
+
+    // WO-572 (HighAsCG) — stop whichever audio-only look is live on a screen's channel, leaving
+    // that screen's normal video look completely untouched (mirrors the web UI mixer's Stop
+    // button on an audio-only look's mixer row).
+    look_audio_only_stop: {
+      name: "Stop audio-only look",
+      options: [
+        {
+          type: "number",
+          id: "screen_index",
+          label: "Screen index",
+          default: 0,
+          min: 0,
+          max: 7,
+        },
+        {
+          type: "dropdown",
+          id: "bus",
+          label: "Bus",
+          default: "program",
+          choices: [
+            { id: "program", label: "Program (PGM)" },
+            { id: "preview", label: "Preview (PRV)" },
+          ],
+          allowCustom: true,
+        },
+      ],
+      callback: async (action) => {
+        if (!instance.bridge?.api) return;
+        const screenIdx = Math.max(
+          0,
+          parseInt(action.options.screen_index, 10) || 0,
+        );
+        const cm = instance._channelMap || {};
+        const pgmCh = cm.programChannels?.[screenIdx];
+        const channel =
+          action.options.bus === "preview"
+            ? cm.previewChannels?.[screenIdx]
+            : pgmCh;
+        if (channel == null || Number(channel) <= 0) {
+          instance.log(
+            "warn",
+            `No ${action.options.bus === "preview" ? "PRV" : "PGM"} channel mapped for screen ${screenIdx + 1}.`,
+          );
+          return;
+        }
+        try {
+          await instance.bridge.api.stopAudioOnlyLook(Number(channel));
+        } catch (e) {
+          instance.log("error", `Stop audio-only look: ${e.message || e}`);
+        }
+      },
+    },
   };
 }
