@@ -2,7 +2,12 @@ import { combineRgb } from "@companion-module/base";
 import {
   dataUriToRawBase64,
   resolveLookAirState,
+  resolveAudioOnlyLookAirState,
 } from "./look-air-state.js";
+import {
+  streamOutputChoices,
+  recordOutputChoices,
+} from "./streaming-outputs.js";
 
 /**
  * @file feedbacks.js
@@ -46,8 +51,7 @@ export default function (instance) {
         const ch = instance._channelMap?.programChannels?.[screenIdx];
         if (ch == null) return false;
         const entry = instance._sceneLive?.[String(ch)];
-        const sid =
-          entry?.sceneId != null ? String(entry.sceneId).trim() : "";
+        const sid = entry?.sceneId != null ? String(entry.sceneId).trim() : "";
         return sid === lookId;
       },
     },
@@ -120,9 +124,83 @@ export default function (instance) {
           if (pgmSid === lookId) return false;
         }
         const entry = instance._sceneLive?.[String(prvCh)];
-        const sid =
-          entry?.sceneId != null ? String(entry.sceneId).trim() : "";
+        const sid = entry?.sceneId != null ? String(entry.sceneId).trim() : "";
         return sid === lookId;
+      },
+    },
+    // WO-572 (HighAsCG) — audio-only looks: additive per-screen audio, tracked in a SEPARATE live
+    // map (scene.liveAudioOnly) since a screen can have one live video look and one live
+    // audio-only look at once. Colors match the HighAsCG web UI's deck ring for the same state
+    // (cyan live / violet preview) — deliberately NOT the video look's red/green, so an operator
+    // never reads "this audio-only look is live" as "this replaced the screen".
+    look_audio_only_is_live: {
+      type: "boolean",
+      name: "Audio-only look is playing (PGM)",
+      description:
+        "True when this audio-only look id matches the live entry on the program channel for the given screen index (from HighAsCG scene.liveAudioOnly). Independent of any video look on the same screen.",
+      defaultStyle: {
+        bgcolor: combineRgb(34, 211, 238),
+        color: combineRgb(0, 0, 0),
+      },
+      options: [
+        {
+          type: "textinput",
+          id: "look_id",
+          label: "Look id",
+          default: "",
+        },
+        {
+          type: "number",
+          id: "screen_index",
+          label: "Screen index",
+          default: 0,
+          min: 0,
+          max: 7,
+        },
+      ],
+      callback: (feedback) => {
+        const lookId = String(feedback.options.look_id ?? "").trim();
+        if (!lookId) return false;
+        const screenIdx = Math.max(
+          0,
+          parseInt(feedback.options.screen_index, 10) || 0,
+        );
+        return resolveAudioOnlyLookAirState(instance, lookId, screenIdx).onPgm;
+      },
+    },
+    look_audio_only_is_preview: {
+      type: "boolean",
+      name: "Audio-only look is staged (PRV)",
+      description:
+        "True when this audio-only look is staged on the preview Caspar channel for the given screen index (from scene.liveAudioOnly). Hidden when the same audio-only look is already playing on PGM for that screen.",
+      defaultStyle: {
+        bgcolor: combineRgb(167, 139, 250),
+        color: combineRgb(0, 0, 0),
+      },
+      options: [
+        {
+          type: "textinput",
+          id: "look_id",
+          label: "Look id",
+          default: "",
+        },
+        {
+          type: "number",
+          id: "screen_index",
+          label: "Screen index",
+          default: 0,
+          min: 0,
+          max: 7,
+        },
+      ],
+      callback: (feedback) => {
+        const lookId = String(feedback.options.look_id ?? "").trim();
+        if (!lookId) return false;
+        const screenIdx = Math.max(
+          0,
+          parseInt(feedback.options.screen_index, 10) || 0,
+        );
+        return resolveAudioOnlyLookAirState(instance, lookId, screenIdx).onPrv;
       },
     },
     look_slot_on_pgm: {
@@ -162,8 +240,7 @@ export default function (instance) {
         const ch = instance._channelMap?.programChannels?.[screenIdx];
         if (ch == null) return false;
         const entry = instance._sceneLive?.[String(ch)];
-        const sid =
-          entry?.sceneId != null ? String(entry.sceneId).trim() : "";
+        const sid = entry?.sceneId != null ? String(entry.sceneId).trim() : "";
         return sid === lookId;
       },
     },
@@ -215,15 +292,18 @@ export default function (instance) {
     },
     caspar_connected: {
       type: "boolean",
-      name: "CasparCG Direct Connected",
-      description: "Checks if the direct AMCP socket is connected",
+      name: "Caspar Connected (via HighAsCG)",
+      description:
+        "True when the HighAsCG app reports its Caspar server connected",
       defaultStyle: {
         bgcolor: combineRgb(0, 255, 0),
         color: combineRgb(0, 0, 0),
       },
       options: [],
       callback: () => {
-        return !!instance.tcp?.connected;
+        // WO-394: no direct AMCP socket anymore — the app reports this over the bridge
+        // (state.caspar.connected, captured by state-sync).
+        return !!instance._casparStatus?.connected;
       },
     },
     highascg_connected: {
@@ -292,9 +372,13 @@ export default function (instance) {
       callback: () => {
         const sync = instance.bridge?.sync;
         if (!sync) return false;
-        const ctx = String(sync.getServerVariable("ui_selection_context") ?? "").trim();
+        const ctx = String(
+          sync.getServerVariable("ui_selection_context") ?? "",
+        ).trim();
         if (ctx !== "scene_layer") return false;
-        const ch = Number(sync.getServerVariable("ui_selection_look_preview_channel"));
+        const ch = Number(
+          sync.getServerVariable("ui_selection_look_preview_channel"),
+        );
         const layer = Number(
           sync.getServerVariable("ui_selection_look_caspar_layer") ||
             sync.getServerVariable("ui_selection_look_layer_number"),
@@ -329,8 +413,88 @@ export default function (instance) {
       callback: (feedback) => {
         const sync = instance.bridge?.sync;
         if (!sync) return false;
-        const ctx = String(sync.getServerVariable("ui_selection_context") ?? "").trim();
+        const ctx = String(
+          sync.getServerVariable("ui_selection_context") ?? "",
+        ).trim();
         return ctx === String(feedback.options.context || "").trim();
+      },
+    },
+
+    streaming_active: {
+      type: "boolean",
+      name: "Stream output is active",
+      description:
+        "True when streaming is running (optionally a specific configured output)",
+      defaultStyle: {
+        bgcolor: combineRgb(200, 0, 0),
+        color: combineRgb(255, 255, 255),
+      },
+      options: [
+        {
+          type: "dropdown",
+          id: "output_id",
+          label: "Output",
+          default: "",
+          choices: [
+            { id: "", label: "Any" },
+            ...streamOutputChoices(instance).filter((c) => c.id),
+          ],
+        },
+      ],
+      callback: (feedback) => {
+        // WO-395: read the raw status (fed by WS broadcast + poller); variable fallback
+        // keeps pre-395 buttons alive until the first status arrives.
+        const rtmp = instance._streamingChannelStatus?.rtmp;
+        const wanted = String(feedback.options?.output_id || "").trim();
+        if (rtmp) {
+          if (!rtmp.active) return false;
+          return !wanted || String(rtmp.outputId || "") === wanted;
+        }
+        return (
+          String(
+            instance.getVariableValue("highascg_rtmp_state") ?? "",
+          ).trim() === "active"
+        );
+      },
+    },
+
+    recording_active: {
+      type: "boolean",
+      name: "Record output is active",
+      description:
+        "True when recording is running (optionally a specific configured output)",
+      defaultStyle: {
+        bgcolor: combineRgb(200, 0, 0),
+        color: combineRgb(255, 255, 255),
+      },
+      options: [
+        {
+          type: "dropdown",
+          id: "output_id",
+          label: "Output",
+          default: "",
+          choices: [
+            { id: "", label: "Any" },
+            ...recordOutputChoices(instance).filter((c) => c.id),
+          ],
+        },
+      ],
+      callback: (feedback) => {
+        const record = instance._streamingChannelStatus?.record;
+        const wanted = String(feedback.options?.output_id || "").trim();
+        if (record) {
+          if (!record.active) return false;
+          if (!wanted) return true;
+          const ids = Array.isArray(record.activeOutputs)
+            ? record.activeOutputs.map(String)
+            : [];
+          return ids.includes(wanted);
+        }
+        return (
+          String(
+            instance.getVariableValue("highascg_record_state") ?? "",
+          ).trim() === "recording"
+        );
       },
     },
   };

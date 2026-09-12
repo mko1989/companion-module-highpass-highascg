@@ -4,7 +4,6 @@ import getFeedbacks from "./feedbacks.js";
 import getVariables from "./variables.js";
 import getPresets from "./presets.js";
 import getConfigFields from "./config-fields.js";
-import { HighAsCGTcp } from "./tcp.js";
 import { HighAsCGBridge } from "./bridge/index.js";
 import { ConnectionRouter } from "./connection-router.js";
 import { getMainHost, normalizeConnectionConfig } from "./host-target.js";
@@ -16,17 +15,17 @@ import {
   pruneDeckToSceneIds,
   refreshDeckLookNamesFromProject,
 } from "./look-sync.js";
-import { syncLookLabelVariables } from "./look-vars.js";
-import { LookAirFrameCache } from "./look-air-frame.js";
 import {
-  extractProjectScenes,
-  extractSceneDeck,
-} from "./project-looks.js";
+  syncLookLabelVariables,
+  syncLookSlotLabelVariables,
+} from "./look-vars.js";
+import { LookAirFrameCache } from "./look-air-frame.js";
+import { extractProjectScenes, extractSceneDeck } from "./project-looks.js";
+import { sendCompanionHello } from "./bridge/companion-hello.js";
 
 class HighAsCGInstance extends InstanceBase {
   constructor(internal) {
     super(internal);
-    this.tcp = null;
     this.bridge = null;
     this.connectionRouter = null;
     /** @type {Map<string, object>} — full scene JSON from live deck sync (unsaved looks not in GET /api/project) */
@@ -52,6 +51,13 @@ class HighAsCGInstance extends InstanceBase {
     /** @type {string} — when look ids / screen layout change (triggers preset catalog rebuild) */
     this._looksCatalogSig = "";
     this._lookAirFrames = new LookAirFrameCache(this);
+    /** @type {object[]} — screen timers from GET /api/timers/list, kept sorted (screen, layer) */
+    this._screenTimers = [];
+  }
+
+  /** Re-read the screen timers now (after an action changed one), refreshing their variables. */
+  refreshScreenTimers() {
+    void this.bridge?.screenTimerPoller?.fetchNow();
   }
 
   /**
@@ -81,7 +87,6 @@ class HighAsCGInstance extends InstanceBase {
     this.updateStatus(InstanceStatus.Connecting);
 
     this.initConnectionRouter();
-    this.initTcp();
     this.initBridge();
     this._syncConnectionVariables();
 
@@ -92,10 +97,6 @@ class HighAsCGInstance extends InstanceBase {
   }
 
   async destroy() {
-    if (this.tcp) {
-      this.tcp.destroy();
-      this.tcp = null;
-    }
     if (this.bridge) {
       this.bridge.destroy();
       this.bridge = null;
@@ -119,11 +120,7 @@ class HighAsCGInstance extends InstanceBase {
     const backupChanged =
       !!prev.hot_backup_enabled !== !!this.config.hot_backup_enabled ||
       String(prev.backup_host || "") !== String(this.config.backup_host || "");
-    const portChanged =
-      prev.port !== this.config.port ||
-      prev.highascg_port !== this.config.highascg_port;
-    const bridgeEnabledChanged =
-      prev.highascg_enabled !== this.config.highascg_enabled;
+    const portChanged = prev.highascg_port !== this.config.highascg_port;
     const previewButtonsChanged =
       isComposePreviewButtonsEnabled(prev) !==
       isComposePreviewButtonsEnabled(this.config);
@@ -131,16 +128,12 @@ class HighAsCGInstance extends InstanceBase {
     if (hostChanged || backupChanged) {
       this.connectionRouter?.resetTarget();
       this.initConnectionRouter();
-    } else if (
-      !!prev.hot_backup_enabled !== !!this.config.hot_backup_enabled
-    ) {
+    } else if (!!prev.hot_backup_enabled !== !!this.config.hot_backup_enabled) {
       this.initConnectionRouter();
     }
 
     if (hostChanged || portChanged || backupChanged) {
       this.reconnectAll();
-    } else if (bridgeEnabledChanged) {
-      this.initBridge();
     }
 
     if (previewButtonsChanged) {
@@ -156,6 +149,7 @@ class HighAsCGInstance extends InstanceBase {
             .catch(() => {});
         }
       }
+      sendCompanionHello(this);
     }
 
     this._syncConnectionVariables();
@@ -180,13 +174,14 @@ class HighAsCGInstance extends InstanceBase {
   }
 
   reconnectAll() {
-    this.initTcp();
+    this.updateStatus(InstanceStatus.Connecting);
     this.initBridge();
   }
 
   _syncConnectionVariables() {
     const router = this.connectionRouter;
     if (!router) return;
+
     this.setVariableValues({
       highascg_connection_target: router.getTarget(),
       highascg_active_host: router.getActiveHost(),
@@ -204,21 +199,12 @@ class HighAsCGInstance extends InstanceBase {
     return getConfigFields();
   }
 
-  initTcp() {
-    if (this.tcp) {
-      this.tcp.destroy();
-    }
-    this.tcp = new HighAsCGTcp(this);
-  }
-
   initBridge() {
     if (this.bridge) {
       this.bridge.destroy();
       this.bridge = null;
     }
-    if (this.config.highascg_enabled) {
-      this.bridge = new HighAsCGBridge(this);
-    }
+    this.bridge = new HighAsCGBridge(this);
   }
 
   updateVariablesFromBridge(variables) {
@@ -276,6 +262,8 @@ class HighAsCGInstance extends InstanceBase {
       used.add(id);
     }
     this._lookSlots = next;
+    // WO-381: preset button text reads these, so they must follow every slot change.
+    syncLookSlotLabelVariables(this);
     this.checkFeedbacks("look_slot_on_pgm", "look_slot_on_prv");
   }
 
@@ -343,7 +331,10 @@ class HighAsCGInstance extends InstanceBase {
         const body = await this.bridge.api.getProject();
         scenes = this._scenesFromProjectBody(body);
       } catch (e) {
-        this.log("debug", `reloadProjectLooksCache GET /api/project: ${e.message || e}`);
+        this.log(
+          "debug",
+          `reloadProjectLooksCache GET /api/project: ${e.message || e}`,
+        );
       }
       this._setProjectScenesCache(scenes);
       this.log(
@@ -417,6 +408,7 @@ class HighAsCGInstance extends InstanceBase {
     this.syncLookSlots();
     this.updateVariables();
     syncLookLabelVariables(this, this._presetLooks);
+    syncLookSlotLabelVariables(this);
 
     const catalogSig = this._looksCatalogSignature(this._presetLooks);
     const catalogChanged = catalogSig !== this._looksCatalogSig;
@@ -457,14 +449,16 @@ class HighAsCGInstance extends InstanceBase {
     if (this._refreshPresetLooksPromise) {
       return this._refreshPresetLooksPromise;
     }
-    this._refreshPresetLooksPromise = this._refreshPresetLooksImpl().finally(() => {
-      this._refreshPresetLooksPromise = null;
-    });
+    this._refreshPresetLooksPromise = this._refreshPresetLooksImpl().finally(
+      () => {
+        this._refreshPresetLooksPromise = null;
+      },
+    );
     return this._refreshPresetLooksPromise;
   }
 
   async _refreshPresetLooksImpl() {
-    if (!this.config.highascg_enabled || !this.bridge?.api) {
+    if (!this.bridge?.api) {
       this._presetLooks = [];
       this._previewLookId = null;
       this._deckSceneById = new Map();

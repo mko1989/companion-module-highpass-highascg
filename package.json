@@ -1,6 +1,6 @@
 {
   "name": "companion-module-highpass-highascg",
-  "version": "1.0.1",
+  "version": "1.0.4",
   "type": "module",
   "main": "index.js",
   "engines": {
@@ -11,8 +11,8 @@
     "format": "prettier --write \"**/*.js\"",
     "lint": "eslint \"**/*.js\"",
     "package": "companion-module-build",
-    "package:dev": "companion-module-build --dev",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "package:dev": "companion-module-build --dev --prerelease && node scripts/stamp-dev-manifest.js",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@companion-module/base": "^2.1.0",

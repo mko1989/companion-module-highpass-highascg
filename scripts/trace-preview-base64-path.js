@@ -66,8 +66,8 @@ for (const ch of CHANNELS) {
 }
 
 console.log(`
---- Companion button binding (after patch) ---
-  Idle layer: preview_pgm / preview_prv base64Image = null (no decode)
-  On-air feedback: base64Image = $(HighAsCG:highascg_compose_preview_chN_image)
-  Compose channel vars: one batched WS update per frame (image + quads)
+--- Companion button binding ---
+  Compose channel buttons: $(HighAsCG:highascg_compose_preview_chN_image)
+  Look buttons (on PGM/PRV): $(HighAsCG:highascg_look_air_frame_{slug})
+  Module sends companion.hello on WS connect — server pushes only requested preview traffic
 `);

@@ -94,43 +94,17 @@ class ConnectionRouter {
     const cfg = this.instance.config;
     const port = getBridgePort(cfg);
 
-    if (cfg.highascg_enabled) {
-      try {
-        const res = await fetch(
-          `http://${host}:${port}/api/companion/control-status`,
-          { signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) },
-        );
-        if (res.ok) {
-          const body = await res.json();
-          if (body && typeof body === "object") return body;
-        }
-      } catch {
-        /* fall through to legacy probe */
+    try {
+      const res = await fetch(
+        `http://${host}:${port}/api/companion/control-status`,
+        { signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) },
+      );
+      if (res.ok) {
+        const body = await res.json();
+        if (body && typeof body === "object") return body;
       }
-      try {
-        const res = await fetch(`http://${host}:${port}/api/state`, {
-          signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
-        });
-        if (res.ok) {
-          return {
-            acceptsCompanionControl: true,
-            suggestedCompanionTarget: "self",
-            controlPlaneReason: "legacy_reachable",
-          };
-        }
-      } catch {
-        return null;
-      }
-    }
-
-    if (this.target === "main" && host === getMainHost(cfg)) {
-      return this.instance.tcp?.connected
-        ? {
-            acceptsCompanionControl: true,
-            suggestedCompanionTarget: "self",
-            controlPlaneReason: "legacy_tcp",
-          }
-        : null;
+    } catch {
+      /* fall through to legacy probe */
     }
 
     try {

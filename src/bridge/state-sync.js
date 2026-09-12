@@ -10,6 +10,9 @@ import { refreshLookAirFeedbacks } from "../look-feedback-ids.js";
 import { msToHms } from "../time-format.js";
 import { isComposePreviewButtonsEnabled } from "../compose-preview-channels.js";
 import { PreviewVariableGate } from "../preview-variable-gate.js";
+import { sendCompanionHello } from "./companion-hello.js";
+import { PREVIEW } from "./contract.js";
+import { syncScreenLabelVariables } from "../look-vars.js";
 
 function _str(v) {
   if (v == null) return "";
@@ -49,19 +52,28 @@ function _deepMergeScene(a, b) {
   const out = { ...(a || {}) };
   if (!b || typeof b !== "object") return out;
   if (b.live != null) out.live = b.live;
+  // WO-572 (HighAsCG) — audio-only looks live in a SEPARATE map from scene.live (a screen can
+  // have one live video look and one live audio-only look at once); this was silently dropped
+  // here even after the server started sending it, so no fresh client (a reconnect, or this
+  // module's own HTTP getState() bootstrap) ever saw audio-only look state at all.
+  if (b.liveAudioOnly != null) out.liveAudioOnly = b.liveAudioOnly;
   if (b.deck != null) out.deck = b.deck;
   return out;
 }
 
 /** Human-readable Companion label for a HighAsCG `variables` key. */
 function _labelForServerKey(key) {
-  const preview = key.match(/^compose_preview_ch(\d+)_image$/)
+  const preview = key.match(/^compose_preview_ch(\d+)_image$/);
   if (preview) {
-    return `Compose preview ch${preview[1]} (button image data URI)`
+    return `Compose preview ch${preview[1]} (button image data URI)`;
   }
-  const quad = key.match(/^compose_preview_ch(\d+)_quad_(tl|tr|bl|br)$/)
+  const quad = key.match(/^compose_preview_ch(\d+)_quad_(tl|tr|bl|br)$/);
   if (quad) {
-    return `Compose preview ch${quad[1]} quadrant ${quad[2].toUpperCase()}`
+    return `Compose preview ch${quad[1]} quadrant ${quad[2].toUpperCase()}`;
+  }
+  const lookAir = key.match(/^look_air_frame_(.+)$/);
+  if (lookAir) {
+    return `Look on-air still (${lookAir[1]})`;
   }
   if (key.startsWith("ui_selection_")) {
     const tail = key.slice("ui_selection_".length).replace(/_/g, " ");
@@ -128,19 +140,24 @@ class HighAsCGStateSync {
   _isPreviewVariableKey(key) {
     const k = String(key);
     return (
-      /^compose_preview_ch\d+_image$/.test(k) ||
-      /^compose_preview_ch\d+_quad_(tl|tr|bl|br)$/.test(k)
+      PREVIEW.COMPOSE_IMAGE_RE.test(k) ||
+      PREVIEW.COMPOSE_QUAD_RE.test(k) ||
+      PREVIEW.LOOK_AIR_FRAME_RE.test(k)
     );
   }
 
   _hasPreviewVariables(variables) {
     if (!variables || typeof variables !== "object") return false;
-    return Object.keys(variables).some((key) => this._isPreviewVariableKey(key));
+    return Object.keys(variables).some((key) =>
+      this._isPreviewVariableKey(key),
+    );
   }
 
   _hasNonPreviewVariables(variables) {
     if (!variables || typeof variables !== "object") return false;
-    return Object.keys(variables).some((key) => !this._isPreviewVariableKey(key));
+    return Object.keys(variables).some(
+      (key) => !this._isPreviewVariableKey(key),
+    );
   }
 
   _composePreviewButtonsEnabled() {
@@ -173,12 +190,27 @@ class HighAsCGStateSync {
     this._syncVariableDefinitionsFromMerged();
   }
 
-  /** Expose latest scene.live + channel map for look PGM/PRV feedbacks. */
+  /** Expose latest scene.live (+ scene.liveAudioOnly) + channel map for look PGM/PRV feedbacks. */
   _syncFeedbackContext() {
     const scene = this._merged.scene || {};
     this.instance._sceneLive =
       scene.live && typeof scene.live === "object" ? scene.live : {};
+    this.instance._sceneLiveAudioOnly =
+      scene.liveAudioOnly && typeof scene.liveAudioOnly === "object"
+        ? scene.liveAudioOnly
+        : {};
+    const prevLabels = JSON.stringify(
+      this.instance._channelMap?.screenLabels || [],
+    );
     this.instance._channelMap = this._merged.channelMap || null;
+    // WO-384: preset button captions read the screen name from a variable, so it has to follow a
+    // rename in HighAsCG rather than being frozen at preset-build time.
+    if (
+      prevLabels !==
+      JSON.stringify(this.instance._channelMap?.screenLabels || [])
+    ) {
+      syncScreenLabelVariables(this.instance);
+    }
   }
 
   /**
@@ -200,6 +232,17 @@ class HighAsCGStateSync {
       values[`highascg_${key}`] = val;
     }
     this.instance.setVariableValues(values);
+    if (this._composePreviewButtonsEnabled()) {
+      for (const [key, val] of Object.entries(variables)) {
+        const m = String(key).match(/^compose_preview_ch(\d+)_image$/);
+        if (m) {
+          this.instance._lookAirFrames?.onChannelPreview(
+            parseInt(m[1], 10),
+            val,
+          );
+        }
+      }
+    }
     if (this._hasNonPreviewVariables(variables)) {
       refreshLookAirFeedbacks(this.instance);
     }
@@ -239,10 +282,23 @@ class HighAsCGStateSync {
       this._pushServerVariables(filtered);
     }
 
+    // WO-394: no direct AMCP socket anymore — the app's own Caspar link state feeds the
+    // `caspar_connected` feedback instead.
+    if (data.caspar !== undefined) {
+      const was = !!this.instance._casparStatus?.connected;
+      this.instance._casparStatus = data.caspar || null;
+      if (was !== !!data.caspar?.connected) {
+        this.instance.checkFeedbacks("caspar_connected");
+      }
+    }
+
     const prevLive = this.instance._sceneLive;
 
     if (data.timeline !== undefined) {
-      this._merged.timeline = _deepMergeTimeline(this._merged.timeline, data.timeline);
+      this._merged.timeline = _deepMergeTimeline(
+        this._merged.timeline,
+        data.timeline,
+      );
     }
     if (data.scene !== undefined) {
       this._merged.scene = _deepMergeScene(this._merged.scene, data.scene);
@@ -256,10 +312,14 @@ class HighAsCGStateSync {
         if (typeof this.instance.updatePresets === "function") {
           this.instance.updatePresets();
         }
+        sendCompanionHello(this.instance);
       }
     }
 
-    if (data.scene?.deck && typeof this.instance.applySceneDeck === "function") {
+    if (
+      data.scene?.deck &&
+      typeof this.instance.applySceneDeck === "function"
+    ) {
       this.instance.applySceneDeck(data.scene.deck);
     }
 
@@ -271,10 +331,10 @@ class HighAsCGStateSync {
 
     if (data.scene !== undefined) {
       const nextLive =
-        this.instance._sceneLive &&
-        typeof this.instance._sceneLive === "object"
+        this.instance._sceneLive && typeof this.instance._sceneLive === "object"
           ? this.instance._sceneLive
           : {};
+      this.instance._lookAirFrames?.syncFromSceneLive(prevLive, nextLive);
       this._refreshLookAirFeedbacks();
     }
 
@@ -284,7 +344,9 @@ class HighAsCGStateSync {
     const tl = this._merged.timeline || {};
     const list = Array.isArray(tl.list) ? tl.list : [];
     const playback =
-      tl.playback && typeof tl.playback === "object" ? { ...tl.playback } : null;
+      tl.playback && typeof tl.playback === "object"
+        ? { ...tl.playback }
+        : null;
 
     const tid = playback?.timelineId != null ? String(playback.timelineId) : "";
     const dur = _timelineDurationMs(list, tid);

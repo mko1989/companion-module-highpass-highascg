@@ -4,10 +4,15 @@ import { resolveChannelBusStyle } from "./quadrant-edge-borders.js";
 
 /** @typedef {'tl' | 'tr' | 'bl' | 'br'} QuadrantId */
 
-const BADGE_X = -20;
+/* Companion 5's layered-element schema clamps x/y/width/height to 0..100 (percent of the
+ * button); any out-of-range value rejects the WHOLE preset ("layered preset definitions
+ * contain invalid elements" — the old BADGE_X = -20 killed every ·Bottom-right· quad preset).
+ * The right-hanging screen badge is expressed as x:0 + width:SCREEN_BADGE_W with halign
+ * right — same visible right edge at 80%, all values in range. */
 const BUS_BADGE_X = 20;
 const BADGE_Y = 56;
 const BADGE_W = 100;
+const SCREEN_BADGE_W = 80;
 const BADGE_H = 50;
 const BADGE_FONTSIZE = 40;
 
@@ -56,7 +61,8 @@ export function quadrantBadgeElements(instance, channel, quadrant) {
         type: "text",
         id: "screen_badge",
         ...badgeBox,
-        x: BADGE_X,
+        x: 0,
+        width: SCREEN_BADGE_W,
         text: `SCR ${screenIdx + 1}`,
         outlineColor: combineRgb(0, 0, 0),
         halign: "right",

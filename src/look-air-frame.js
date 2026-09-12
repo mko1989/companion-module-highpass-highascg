@@ -1,12 +1,11 @@
 /**
  * Per-look on-air still frames for Stream Deck look buttons.
  *
- * Live channel compose variables (highascg_compose_preview_chN_image) update at
- * video rate and are shared — every change re-renders every subscribed button.
- * Stream Deck uploads a full bitmap over USB on each invalidation.
+ * HighAsCG server pushes `look_air_frame_{slug}` when a look is on PGM/PRV
+ * (see highascg/src/companion-bridge/look-air-frames.js). Look button presets
+ * bind to `highascg_look_air_frame_{slug}` — only on-air looks receive updates.
  *
- * Look buttons bind to highascg_look_air_frame_{slug} instead: only the on-air
- * look(s) subscribe — hash dedupe skips identical frames at compose tick rate.
+ * This cache is retained for legacy client-side fallback only; server push is primary.
  */
 
 import crypto from "crypto";

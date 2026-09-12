@@ -225,12 +225,12 @@ def compose_preview_var(channel: int) -> str:
     return f"highascg_compose_preview_ch{int(channel)}_image"
 
 
-def tally_overrides(border_id: str, preview_layer_id: str, preview_channel: int):
+def tally_overrides(border_id: str, preview_layer_id: str, look_id: str):
     return label_on_air_override_additions() + [
         override_entry(
             preview_layer_id,
             "base64Image",
-            var_expr(compose_preview_var(preview_channel)),
+            var_expr(look_air_frame_var(look_id)),
         ),
         override_entry(preview_layer_id, "opacity", literal(100)),
         override_entry(border_id, "opacity", literal(100)),
@@ -446,11 +446,11 @@ def patch_control(control: dict, channel_map: dict) -> bool:
         overrides = strip_image_and_stale(fb.get("styleOverrides") or [])
         if fid == "look_on_pgm":
             fb["styleOverrides"] = merge_overrides(
-                overrides, tally_overrides("pgm_border", "preview_pgm", pgm_ch)
+                overrides, tally_overrides("pgm_border", "preview_pgm", look_id)
             )
         elif fid == "look_on_prv_for_screen":
             fb["styleOverrides"] = merge_overrides(
-                overrides, tally_overrides("prv_border", "preview_prv", prv_ch or pgm_ch)
+                overrides, tally_overrides("prv_border", "preview_prv", look_id)
             )
 
     step = (control.get("steps") or {}).get("0") or {}

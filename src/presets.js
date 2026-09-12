@@ -1,13 +1,20 @@
 import { combineRgb } from "@companion-module/base";
 import { addComposePreviewPresets } from "./presets/compose-preview-presets.js";
+import { addStreamingPresets } from "./presets/streaming-presets.js";
 import { addLookPreviewLinkedPresets } from "./presets/look-preview-linked-presets.js";
 import { addPrvTakePresets } from "./presets/prv-take-presets.js";
-import { connectionVariableExpression, connectionLabel } from "./connection-expressions.js";
-import { isComposePreviewButtonsEnabled } from "./compose-preview-channels.js";
+import { addScreenTimerPresets } from "./presets/screen-timer-presets.js";
 import {
-  mainScopeShortLabel,
-  normalizeMainScope,
-} from "./look-scope.js";
+  connectionVariableExpression,
+  connectionLabel,
+} from "./connection-expressions.js";
+import { isComposePreviewButtonsEnabled } from "./compose-preview-channels.js";
+import { mainScopeShortLabel, normalizeMainScope } from "./look-scope.js";
+import {
+  lookLabelVariableId,
+  lookSlotLabelVariableId,
+  screenLabelVariableId,
+} from "./look-vars.js";
 
 /**
  * @param {import('./instance.js').HighAsCGInstance} instance
@@ -34,12 +41,25 @@ function presetKeyFromLookId(id) {
 export default function getPresets(instance) {
   const presets = {};
   const structure = [
-    { id: "playout", name: "Playout", definitions: [] },
+    { id: "streaming", name: "HighAsCG · Stream & Record", definitions: [] },
     { id: "looks", name: "HighAsCG · Looks", definitions: [] },
-    { id: "look_slots", name: "HighAsCG · Look Slots (PTZ style)", definitions: [] },
-    { id: "selected_layer", name: "HighAsCG · Selected layer", definitions: [] },
+    {
+      id: "look_slots",
+      name: "HighAsCG · Look Slots (PTZ style)",
+      definitions: [],
+    },
+    {
+      id: "selected_layer",
+      name: "HighAsCG · Selected layer",
+      definitions: [],
+    },
     { id: "timeline", name: "HighAsCG · Timeline", definitions: [] },
-    { id: "compose_preview", name: "HighAsCG · Compose preview", definitions: [] },
+    { id: "screen_timers", name: "HighAsCG · Screen timers", definitions: [] },
+    {
+      id: "compose_preview",
+      name: "HighAsCG · Compose preview",
+      definitions: [],
+    },
     {
       id: "compose_preview_quadrants",
       name: "HighAsCG · Compose preview · Quadrants",
@@ -58,30 +78,13 @@ export default function getPresets(instance) {
     section(sectionId).definitions.push(key);
   };
 
-  add("playout", "play_clip", {
-    type: "simple",
-    name: "Play Ch1 L10",
-    style: {
-      text: "PLAY\\nCH1 L10",
-      size: "14",
-      color: combineRgb(255, 255, 255),
-      bgcolor: combineRgb(0, 100, 0),
-    },
-    steps: [
-      {
-        down: [
-          {
-            actionId: "play",
-            options: { channel: 1, layer: 10, clip: "", loop: false },
-          },
-        ],
-        up: [],
-      },
-    ],
-    feedbacks: [],
-  });
+  // WO-394 removed the direct-AMCP play preset; WO-395 fills "streaming" with the
+  // configured stream/record outputs.
+  addStreamingPresets(add, instance);
 
-  const looks = Array.isArray(instance._presetLooks) ? instance._presetLooks : [];
+  const looks = Array.isArray(instance._presetLooks)
+    ? instance._presetLooks
+    : [];
   const usedKeys = new Set();
   looks.forEach((look) => {
     let base = presetKeyFromLookId(look.id);
@@ -101,7 +104,16 @@ export default function getPresets(instance) {
       type: "simple",
       name: `${display} · ${scopeTag}`,
       style: {
-        text: `${display}\\n${scopeTag}`,
+        // WO-381: the NAME comes from a variable, not baked in. A preset's style is copied onto
+        // the button when it is dragged out, so a literal name freezes there and a renamed look
+        // keeps its old caption forever (owner: "when a look gets a diferent title it still
+        // stays look 1 in companion").
+        // WO-384: the screen half comes from a variable too, so renaming a screen in HighAsCG
+        // re-captions the button. Looks scoped to every screen stay the literal "All".
+        text:
+          scope === "all"
+            ? `$(${connectionLabel(instance)}:${lookLabelVariableId(look.id)})\\nAll`
+            : `$(${connectionLabel(instance)}:${lookLabelVariableId(look.id)})\\n$(${connectionLabel(instance)}:${screenLabelVariableId(screenIndex)})`,
         size: "14",
         color: combineRgb(255, 255, 255),
         bgcolor: combineRgb(0, 0, 0),
@@ -113,6 +125,9 @@ export default function getPresets(instance) {
               actionId: "look_take",
               options: {
                 look_id: look.id,
+                // WO-384: the Bus option was omitted, so a button dragged from this preset had
+                // an undefined bus in its action editor instead of Program.
+                target: "program",
                 screen_index: screenIndex,
                 force_cut: false,
               },
@@ -157,7 +172,8 @@ export default function getPresets(instance) {
       type: "simple",
       name: `Slot ${slot}: ${label}`,
       style: {
-        text: `L${slot}\\n${label}`,
+        // WO-381: follows both a rename AND the look being moved to another slot.
+        text: `L${slot}\\n$(${connectionLabel(instance)}:${lookSlotLabelVariableId(slot)})`,
         size: "14",
         color: combineRgb(255, 255, 255),
         bgcolor: combineRgb(0, 0, 0),
@@ -388,6 +404,7 @@ export default function getPresets(instance) {
             actionId: "look_take",
             options: {
               look_id: "",
+              target: "program",
               screen_index: 0,
               force_cut: false,
             },
@@ -541,6 +558,10 @@ export default function getPresets(instance) {
   addLookPreviewLinkedPresets(presets, structure, instance);
 
   addPrvTakePresets(presets, structure, instance);
+
+  // WO-384 (owner: "the timer doesnt have preset buttons") — uses the shared `add` so the
+  // section ordering above stays the single source of truth.
+  addScreenTimerPresets(instance, add);
 
   add("timeline", "tl_duration_var", {
     type: "simple",

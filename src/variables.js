@@ -4,6 +4,11 @@ import {
   isComposePreviewButtonsEnabled,
   resolveComposePreviewChannels,
 } from "./compose-preview-channels.js";
+import { screenTimerVariableDefinitions } from "./screen-timers.js";
+import {
+  lookSlotLabelVariableDefinitions,
+  screenLabelVariableDefinitions,
+} from "./look-vars.js";
 
 const CONNECTION_VARIABLE_DEFINITIONS = [
   {
@@ -25,15 +30,59 @@ const CONNECTION_VARIABLE_DEFINITIONS = [
 
 const TIMELINE_VARIABLE_DEFINITIONS = [
   { variableId: "highascg_timeline_id", name: "HighAsCG: Active timeline id" },
-  { variableId: "highascg_timeline_name", name: "HighAsCG: Active timeline name" },
-  { variableId: "highascg_timeline_playing", name: "HighAsCG: Timeline playing (true/false)" },
-  { variableId: "highascg_timeline_loop", name: "HighAsCG: Timeline loop (true/false)" },
-  { variableId: "highascg_timeline_position", name: "HighAsCG: Timeline position (hh:mm:ss)" },
-  { variableId: "highascg_timeline_duration", name: "HighAsCG: Timeline duration (hh:mm:ss)" },
-  { variableId: "highascg_timeline_remaining", name: "HighAsCG: Timeline remaining (hh:mm:ss)" },
-  { variableId: "highascg_timeline_position_ms", name: "HighAsCG: Timeline position (ms, raw)" },
-  { variableId: "highascg_timeline_duration_ms", name: "HighAsCG: Timeline duration (ms, raw)" },
-  { variableId: "highascg_timeline_remaining_ms", name: "HighAsCG: Timeline remaining (ms, raw)" },
+  {
+    variableId: "highascg_timeline_name",
+    name: "HighAsCG: Active timeline name",
+  },
+  {
+    variableId: "highascg_timeline_playing",
+    name: "HighAsCG: Timeline playing (true/false)",
+  },
+  {
+    variableId: "highascg_timeline_loop",
+    name: "HighAsCG: Timeline loop (true/false)",
+  },
+  {
+    variableId: "highascg_timeline_position",
+    name: "HighAsCG: Timeline position (hh:mm:ss)",
+  },
+  {
+    variableId: "highascg_timeline_duration",
+    name: "HighAsCG: Timeline duration (hh:mm:ss)",
+  },
+  {
+    variableId: "highascg_timeline_remaining",
+    name: "HighAsCG: Timeline remaining (hh:mm:ss)",
+  },
+  {
+    variableId: "highascg_timeline_position_ms",
+    name: "HighAsCG: Timeline position (ms, raw)",
+  },
+  {
+    variableId: "highascg_timeline_duration_ms",
+    name: "HighAsCG: Timeline duration (ms, raw)",
+  },
+  {
+    variableId: "highascg_timeline_remaining_ms",
+    name: "HighAsCG: Timeline remaining (ms, raw)",
+  },
+];
+
+const STREAMING_CHANNEL_VARIABLE_DEFINITIONS = [
+  {
+    variableId: "highascg_rtmp_state",
+    name: "HighAsCG: RTMP state (active/inactive)",
+  },
+  { variableId: "highascg_rtmp_url", name: "HighAsCG: RTMP URL" },
+  {
+    variableId: "highascg_record_state",
+    name: "HighAsCG: Record state (recording/idle)",
+  },
+  { variableId: "highascg_record_path", name: "HighAsCG: Record file path" },
+  {
+    variableId: "highascg_record_output_id",
+    name: "HighAsCG: Record output ID",
+  },
 ];
 
 /** @returns {string} Companion variable id for full-frame compose preview on a channel. */
@@ -70,19 +119,55 @@ export function getComposePreviewVariableDefinitions(channels = [1, 2, 3]) {
 
 /** Authoritative HighAsCG UI selection keys (55 total). Same prefix as server `variables`. */
 const UI_SELECTION_VARIABLE_DEFINITIONS = [
-  { variableId: "highascg_ui_selection_context", name: "UI selection: context" },
+  {
+    variableId: "highascg_ui_selection_context",
+    name: "UI selection: context",
+  },
   { variableId: "highascg_ui_selection_label", name: "UI selection: label" },
-  { variableId: "highascg_ui_selection_look_id", name: "UI selection: look id" },
-  { variableId: "highascg_ui_selection_look_name", name: "UI selection: look name" },
-  { variableId: "highascg_ui_selection_look_layer_index", name: "UI selection: look layer index" },
-  { variableId: "highascg_ui_selection_look_layer_number", name: "UI selection: look layer number" },
-  { variableId: "highascg_ui_selection_look_preview_channel", name: "UI selection: look preview channel" },
-  { variableId: "highascg_ui_selection_look_caspar_layer", name: "UI selection: look Caspar layer" },
-  { variableId: "highascg_ui_selection_look_screen_index", name: "UI selection: look screen index" },
-  { variableId: "highascg_ui_selection_look_canvas_w", name: "UI selection: look canvas width" },
-  { variableId: "highascg_ui_selection_look_canvas_h", name: "UI selection: look canvas height" },
-  { variableId: "highascg_ui_selection_look_fill_x", name: "UI selection: look fill X" },
-  { variableId: "highascg_ui_selection_look_fill_y", name: "UI selection: look fill Y" },
+  {
+    variableId: "highascg_ui_selection_look_id",
+    name: "UI selection: look id",
+  },
+  {
+    variableId: "highascg_ui_selection_look_name",
+    name: "UI selection: look name",
+  },
+  {
+    variableId: "highascg_ui_selection_look_layer_index",
+    name: "UI selection: look layer index",
+  },
+  {
+    variableId: "highascg_ui_selection_look_layer_number",
+    name: "UI selection: look layer number",
+  },
+  {
+    variableId: "highascg_ui_selection_look_preview_channel",
+    name: "UI selection: look preview channel",
+  },
+  {
+    variableId: "highascg_ui_selection_look_caspar_layer",
+    name: "UI selection: look Caspar layer",
+  },
+  {
+    variableId: "highascg_ui_selection_look_screen_index",
+    name: "UI selection: look screen index",
+  },
+  {
+    variableId: "highascg_ui_selection_look_canvas_w",
+    name: "UI selection: look canvas width",
+  },
+  {
+    variableId: "highascg_ui_selection_look_canvas_h",
+    name: "UI selection: look canvas height",
+  },
+  {
+    variableId: "highascg_ui_selection_look_fill_x",
+    name: "UI selection: look fill X",
+  },
+  {
+    variableId: "highascg_ui_selection_look_fill_y",
+    name: "UI selection: look fill Y",
+  },
   {
     variableId: "highascg_ui_selection_look_fill_scale_x",
     name: "UI selection: look fill scale X",
@@ -91,21 +176,54 @@ const UI_SELECTION_VARIABLE_DEFINITIONS = [
     variableId: "highascg_ui_selection_look_fill_scale_y",
     name: "UI selection: look fill scale Y",
   },
-  { variableId: "highascg_ui_selection_look_rotation", name: "UI selection: look rotation" },
-  { variableId: "highascg_ui_selection_look_opacity", name: "UI selection: look opacity" },
-  { variableId: "highascg_ui_selection_look_source_type", name: "UI selection: look source type" },
-  { variableId: "highascg_ui_selection_look_source_value", name: "UI selection: look source value" },
-  { variableId: "highascg_ui_selection_look_source_label", name: "UI selection: look source label" },
-  { variableId: "highascg_ui_selection_look_loop", name: "UI selection: look loop" },
-  { variableId: "highascg_ui_selection_look_audio_route", name: "UI selection: look audio route" },
-  { variableId: "highascg_ui_selection_look_volume", name: "UI selection: look volume" },
-  { variableId: "highascg_ui_selection_look_muted", name: "UI selection: look muted" },
+  {
+    variableId: "highascg_ui_selection_look_rotation",
+    name: "UI selection: look rotation",
+  },
+  {
+    variableId: "highascg_ui_selection_look_opacity",
+    name: "UI selection: look opacity",
+  },
+  {
+    variableId: "highascg_ui_selection_look_source_type",
+    name: "UI selection: look source type",
+  },
+  {
+    variableId: "highascg_ui_selection_look_source_value",
+    name: "UI selection: look source value",
+  },
+  {
+    variableId: "highascg_ui_selection_look_source_label",
+    name: "UI selection: look source label",
+  },
+  {
+    variableId: "highascg_ui_selection_look_loop",
+    name: "UI selection: look loop",
+  },
+  {
+    variableId: "highascg_ui_selection_look_audio_route",
+    name: "UI selection: look audio route",
+  },
+  {
+    variableId: "highascg_ui_selection_look_volume",
+    name: "UI selection: look volume",
+  },
+  {
+    variableId: "highascg_ui_selection_look_muted",
+    name: "UI selection: look muted",
+  },
   {
     variableId: "highascg_ui_selection_look_straight_alpha",
     name: "UI selection: look straight alpha",
   },
-  { variableId: "highascg_ui_selection_look_content_fit", name: "UI selection: look content fit" },
-  { variableId: "highascg_ui_selection_look_aspect_locked", name: "UI selection: look aspect locked" },
+  {
+    variableId: "highascg_ui_selection_look_content_fit",
+    name: "UI selection: look content fit",
+  },
+  {
+    variableId: "highascg_ui_selection_look_aspect_locked",
+    name: "UI selection: look aspect locked",
+  },
   {
     variableId: "highascg_ui_selection_look_transition_json",
     name: "UI selection: look transition JSON",
@@ -126,24 +244,78 @@ const UI_SELECTION_VARIABLE_DEFINITIONS = [
     variableId: "highascg_ui_selection_look_start_behaviour",
     name: "UI selection: look start behaviour",
   },
-  { variableId: "highascg_ui_selection_look_layer_json", name: "UI selection: look layer JSON" },
-  { variableId: "highascg_ui_selection_tl_timeline_id", name: "UI selection: TL timeline id" },
-  { variableId: "highascg_ui_selection_tl_layer_idx", name: "UI selection: TL layer index" },
-  { variableId: "highascg_ui_selection_tl_clip_id", name: "UI selection: TL clip id" },
-  { variableId: "highascg_ui_selection_tl_aspect_locked", name: "UI selection: TL aspect locked" },
-  { variableId: "highascg_ui_selection_tl_pixel_x", name: "UI selection: TL pixel X" },
-  { variableId: "highascg_ui_selection_tl_pixel_y", name: "UI selection: TL pixel Y" },
-  { variableId: "highascg_ui_selection_tl_pixel_w", name: "UI selection: TL pixel W" },
-  { variableId: "highascg_ui_selection_tl_pixel_h", name: "UI selection: TL pixel H" },
-  { variableId: "highascg_ui_selection_tl_fill_x", name: "UI selection: TL fill X" },
-  { variableId: "highascg_ui_selection_tl_fill_y", name: "UI selection: TL fill Y" },
-  { variableId: "highascg_ui_selection_tl_scale_x", name: "UI selection: TL scale X" },
-  { variableId: "highascg_ui_selection_tl_scale_y", name: "UI selection: TL scale Y" },
-  { variableId: "highascg_ui_selection_mv_cell_id", name: "UI selection: MV cell id" },
-  { variableId: "highascg_ui_selection_mv_layer_index", name: "UI selection: MV layer index" },
-  { variableId: "highascg_ui_selection_mv_channel", name: "UI selection: MV channel" },
-  { variableId: "highascg_ui_selection_mv_canvas_w", name: "UI selection: MV canvas width" },
-  { variableId: "highascg_ui_selection_mv_canvas_h", name: "UI selection: MV canvas height" },
+  {
+    variableId: "highascg_ui_selection_look_layer_json",
+    name: "UI selection: look layer JSON",
+  },
+  {
+    variableId: "highascg_ui_selection_tl_timeline_id",
+    name: "UI selection: TL timeline id",
+  },
+  {
+    variableId: "highascg_ui_selection_tl_layer_idx",
+    name: "UI selection: TL layer index",
+  },
+  {
+    variableId: "highascg_ui_selection_tl_clip_id",
+    name: "UI selection: TL clip id",
+  },
+  {
+    variableId: "highascg_ui_selection_tl_aspect_locked",
+    name: "UI selection: TL aspect locked",
+  },
+  {
+    variableId: "highascg_ui_selection_tl_pixel_x",
+    name: "UI selection: TL pixel X",
+  },
+  {
+    variableId: "highascg_ui_selection_tl_pixel_y",
+    name: "UI selection: TL pixel Y",
+  },
+  {
+    variableId: "highascg_ui_selection_tl_pixel_w",
+    name: "UI selection: TL pixel W",
+  },
+  {
+    variableId: "highascg_ui_selection_tl_pixel_h",
+    name: "UI selection: TL pixel H",
+  },
+  {
+    variableId: "highascg_ui_selection_tl_fill_x",
+    name: "UI selection: TL fill X",
+  },
+  {
+    variableId: "highascg_ui_selection_tl_fill_y",
+    name: "UI selection: TL fill Y",
+  },
+  {
+    variableId: "highascg_ui_selection_tl_scale_x",
+    name: "UI selection: TL scale X",
+  },
+  {
+    variableId: "highascg_ui_selection_tl_scale_y",
+    name: "UI selection: TL scale Y",
+  },
+  {
+    variableId: "highascg_ui_selection_mv_cell_id",
+    name: "UI selection: MV cell id",
+  },
+  {
+    variableId: "highascg_ui_selection_mv_layer_index",
+    name: "UI selection: MV layer index",
+  },
+  {
+    variableId: "highascg_ui_selection_mv_channel",
+    name: "UI selection: MV channel",
+  },
+  {
+    variableId: "highascg_ui_selection_mv_canvas_w",
+    name: "UI selection: MV canvas width",
+  },
+  {
+    variableId: "highascg_ui_selection_mv_canvas_h",
+    name: "UI selection: MV canvas height",
+  },
   { variableId: "highascg_ui_selection_mv_x", name: "UI selection: MV X" },
   { variableId: "highascg_ui_selection_mv_y", name: "UI selection: MV Y" },
   { variableId: "highascg_ui_selection_mv_w", name: "UI selection: MV width" },
@@ -181,6 +353,9 @@ export function getInitialVariableDefinitions() {
   return variableDefinitionsToObject([
     ...CONNECTION_VARIABLE_DEFINITIONS,
     ...TIMELINE_VARIABLE_DEFINITIONS,
+    ...STREAMING_CHANNEL_VARIABLE_DEFINITIONS,
+    ...lookSlotLabelVariableDefinitions(),
+    ...screenLabelVariableDefinitions(),
     ...UI_SELECTION_VARIABLE_DEFINITIONS,
   ]);
 }
@@ -190,6 +365,14 @@ export function getInitialVariableDefinitions() {
  */
 export default function getVariables(instance) {
   const base = getInitialVariableDefinitions();
+  // WO-386: one block per timer that exists — no placeholder slots. Re-registered by the poller
+  // whenever the set of timers changes.
+  Object.assign(
+    base,
+    variableDefinitionsToObject(
+      screenTimerVariableDefinitions(instance?._screenTimers || []),
+    ),
+  );
   /** @type {Record<string, { name: string }>} */
   const out = { ...base };
 
@@ -197,11 +380,15 @@ export default function getVariables(instance) {
     const channels = resolveComposePreviewChannels(instance);
     Object.assign(
       out,
-      variableDefinitionsToObject(buildComposePreviewVariableDefinitions(channels)),
+      variableDefinitionsToObject(
+        buildComposePreviewVariableDefinitions(channels),
+      ),
     );
   }
 
-  const looks = Array.isArray(instance?._presetLooks) ? instance._presetLooks : [];
+  const looks = Array.isArray(instance?._presetLooks)
+    ? instance._presetLooks
+    : [];
   /** @type {Record<string, { name: string }>} */
   const lookDefs = {};
   for (const look of looks) {

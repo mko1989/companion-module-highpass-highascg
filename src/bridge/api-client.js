@@ -87,9 +87,7 @@ class HighAsCGApi {
   }
 
   async getTimelinePlayback(timelineId) {
-    return this._get(
-      `/api/timelines/${encodeURIComponent(timelineId)}/state`,
-    );
+    return this._get(`/api/timelines/${encodeURIComponent(timelineId)}/state`);
   }
 
   /**
@@ -128,6 +126,15 @@ class HighAsCGApi {
     if (opts.bus) body.bus = opts.bus;
     if (opts.stageOnPreview === false) body.stageOnPreview = false;
     return this._post("/api/scene/take", body);
+  }
+
+  /**
+   * WO-572 (HighAsCG) — stop whichever audio-only look is live on a channel, leaving that
+   * channel's normal video look completely untouched (mirrors the web UI's mixer Stop button).
+   * @param {number} channel
+   */
+  async stopAudioOnlyLook(channel) {
+    return this._post("/api/scene/audio-only/stop", { channel });
   }
 
   async timelinePlay(id, options = {}) {
@@ -224,18 +231,16 @@ class HighAsCGApi {
     return this._post("/api/settings/apply-os");
   }
 
-  async toggleStreaming(enabled) {
-    return this._post("/api/streaming/toggle", { enabled });
-  }
-
   async setMonitoringSource(monitor) {
     return this._post("/api/audio/config", {
       audioRouting: { browserMonitor: monitor },
     });
   }
 
-  async restartServer() {
-    return this._post("/api/restart");
+  /** Renew DHCP / reconnect wired NIC (passwordless sudo on playout host). */
+  async resetNetwork(iface) {
+    const body = iface ? { interface: String(iface) } : {};
+    return this._post("/api/system/network/reset", body);
   }
 
   async getVariables() {
@@ -262,6 +267,170 @@ class HighAsCGApi {
 
   async setVariableCustomLabels(labels) {
     return this._post("/api/variables/custom", { labels });
+  }
+
+  /**
+   * POST /api/amcp/raw — one raw AMCP line, sent through the app (normalized, tracked,
+   * failover-aware). The module's only AMCP surface since WO-394.
+   * @param {string} cmd
+   */
+  async amcpRaw(cmd) {
+    return this._post("/api/amcp/raw", { cmd: String(cmd) });
+  }
+
+  /** GET /api/streaming-channel — full status (RTMP active, record sessions, etc.). */
+  async getStreamingChannelStatus() {
+    return this._get("/api/streaming-channel");
+  }
+
+  /**
+   * POST /api/streaming-channel/rtmp — start or stop RTMP streaming.
+   * @param {object} opts
+   * @param {'start'|'stop'} opts.action
+   * @param {string} [opts.rtmpServerUrl] — required for 'start'
+   * @param {string} [opts.streamKey] — required for 'start'
+   * @param {string} [opts.quality] — optional, e.g. 'medium'
+   * @param {string} [opts.videoCodec] — optional
+   * @param {number} [opts.videoBitrateKbps] — optional
+   * @param {string} [opts.encoderPreset] — optional
+   * @param {string} [opts.audioCodec] — optional
+   * @param {number} [opts.audioBitrateKbps] — optional
+   * @param {string} [opts.outputId] — optional output configuration id
+   */
+  async rtmpStreaming(opts = {}) {
+    const body = {
+      action: opts.action === "stop" ? "stop" : "start",
+    };
+    if (opts.rtmpServerUrl != null)
+      body.rtmpServerUrl = String(opts.rtmpServerUrl);
+    if (opts.streamKey != null) body.streamKey = String(opts.streamKey);
+    if (opts.quality != null) body.quality = String(opts.quality);
+    if (opts.videoCodec != null) body.videoCodec = String(opts.videoCodec);
+    if (opts.videoBitrateKbps != null)
+      body.videoBitrateKbps = Number(opts.videoBitrateKbps);
+    if (opts.encoderPreset != null)
+      body.encoderPreset = String(opts.encoderPreset);
+    if (opts.audioCodec != null) body.audioCodec = String(opts.audioCodec);
+    if (opts.audioBitrateKbps != null)
+      body.audioBitrateKbps = Number(opts.audioBitrateKbps);
+    if (opts.outputId != null) body.outputId = String(opts.outputId);
+    return this._post("/api/streaming-channel/rtmp", body);
+  }
+
+  /**
+   * POST /api/streaming-channel/record — start or stop recording.
+   * @param {object} opts
+   * @param {'start'|'stop'} opts.action
+   * @param {string} [opts.outputId] — optional output configuration id
+   * @param {number} [opts.crf] — optional quality (18-51, default 26)
+   * @param {string} [opts.videoCodec] — optional
+   * @param {number} [opts.videoBitrateKbps] — optional
+   * @param {string} [opts.encoderPreset] — optional
+   * @param {string} [opts.audioCodec] — optional
+   * @param {number} [opts.audioBitrateKbps] — optional
+   */
+  async recordStreaming(opts = {}) {
+    const body = {
+      action: opts.action === "stop" ? "stop" : "start",
+    };
+    if (opts.outputId != null) body.outputId = String(opts.outputId);
+    if (opts.crf != null) body.crf = Number(opts.crf);
+    if (opts.videoCodec != null) body.videoCodec = String(opts.videoCodec);
+    if (opts.videoBitrateKbps != null)
+      body.videoBitrateKbps = Number(opts.videoBitrateKbps);
+    if (opts.encoderPreset != null)
+      body.encoderPreset = String(opts.encoderPreset);
+    if (opts.audioCodec != null) body.audioCodec = String(opts.audioCodec);
+    if (opts.audioBitrateKbps != null)
+      body.audioBitrateKbps = Number(opts.audioBitrateKbps);
+    return this._post("/api/streaming-channel/record", body);
+  }
+
+  /**
+   * POST /api/timelines/:id/take — direct timeline take with optional sendTo routing.
+   * @param {string} id — timeline id
+   * @param {object} opts
+   * @param {object} [opts.sendTo] — optional sendTo routing (preview, program, screenIdx)
+   */
+  async timelineTake(id, opts = {}) {
+    const body = {};
+    if (opts.sendTo && typeof opts.sendTo === "object") {
+      body.sendTo = opts.sendTo;
+    }
+    return this._post(`/api/timelines/${encodeURIComponent(id)}/take`, body);
+  }
+
+  /**
+   * POST /api/timelines/:id/sendto — set timeline sendTo routing.
+   * @param {string} id — timeline id
+   * @param {object} opts
+   * @param {boolean} [opts.preview] — send to preview
+   * @param {boolean} [opts.program] — send to program
+   * @param {number} [opts.screenIdx] — screen index
+   */
+  async timelineSendTo(id, opts = {}) {
+    const body = {};
+    if (opts.preview != null) body.preview = !!opts.preview;
+    if (opts.program != null) body.program = !!opts.program;
+    if (opts.screenIdx != null) body.screenIdx = Number(opts.screenIdx);
+    return this._post(`/api/timelines/${encodeURIComponent(id)}/sendto`, body);
+  }
+
+  /**
+   * POST /api/countdown/:action — control countdown template.
+   * @param {string} action — 'start', 'pause', 'reset', 'set', or 'update'
+   * @param {object} opts
+   * @param {number} [opts.channel] — CasparCG channel (routing)
+   * @param {number} [opts.layer] — logical layer number (routing)
+   * @param {number} [opts.layerNumber] — alias for layer (routing)
+   * @param {string|object} [opts.rest] — remaining config properties for 'set'/'update'
+   */
+  async countdownControl(action, opts = {}) {
+    const body = { ...opts };
+    return this._post(`/api/countdown/${encodeURIComponent(action)}`, body);
+  }
+
+  /**
+   * GET /api/countdown/list — enumerate countdown template layers.
+   */
+  async getCountdownList() {
+    return this._get("/api/countdown/list");
+  }
+
+  /* ---- Screen timers (WO-210 registry: /api/timers/*) -------------------------------
+   * These are the timers the HighAsCG web UI owns in its Timers dock and screen-timer
+   * Inspector — assigned to screens, one CG layer each in the 980-989 band. Distinct from
+   * the older channel/layer `countdown*` calls above. */
+
+  /** GET /api/timers/list — every assigned timer with its config, runtime and screens. */
+  async getScreenTimers() {
+    return this._get("/api/timers/list");
+  }
+
+  /**
+   * POST /api/timers/cmd — transport, fanned out by the server to every assigned screen.
+   * @param {string} timerId
+   * @param {'start'|'pause'|'reset'} cmd
+   */
+  async screenTimerCmd(timerId, cmd) {
+    return this._post("/api/timers/cmd", { timerId, cmd });
+  }
+
+  /**
+   * POST /api/timers/visible — show/hide on one screen; `fadeFrames > 0` ramps the opacity.
+   * @param {{ timerId: string, screenIdx: number, visible: boolean, fadeFrames?: number, opacity?: number }} body
+   */
+  async screenTimerVisible(body) {
+    return this._post("/api/timers/visible", body);
+  }
+
+  /**
+   * POST /api/timers/assign — re-assigning a timer to a screen it already occupies merges
+   * `config` and emits the CG UPDATE. This is how the time is set.
+   * @param {{ timerId: string, screenIdx: number, config?: object, name?: string }} body
+   */
+  async screenTimerAssign(body) {
+    return this._post("/api/timers/assign", body);
   }
 }
 

@@ -70,5 +70,23 @@ export default function (instance) {
         }
       },
     },
+
+    network_reset: {
+      name: "Reset network (DHCP renew)",
+      options: [
+        {
+          type: "textinput",
+          label: "Interface (optional, e.g. eno1)",
+          id: "interface",
+          default: "",
+        },
+      ],
+      callback: async (action) => {
+        if (instance.bridge && instance.bridge.api) {
+          const iface = String(action.options.interface || "").trim();
+          await instance.bridge.api.resetNetwork(iface || undefined);
+        }
+      },
+    },
   };
 }
