@@ -10,6 +10,7 @@ import { refreshLookAirFeedbacks } from "../look-feedback-ids.js";
 import { msToHms } from "../time-format.js";
 import { isComposePreviewButtonsEnabled } from "../compose-preview-channels.js";
 import { PreviewVariableGate } from "../preview-variable-gate.js";
+import { ingestGlobalBorders } from "../global-borders.js";
 import { sendCompanionHello } from "./companion-hello.js";
 import { PREVIEW } from "./contract.js";
 import { syncScreenLabelVariables } from "../look-vars.js";
@@ -202,14 +203,23 @@ class HighAsCGStateSync {
     const prevLabels = JSON.stringify(
       this.instance._channelMap?.screenLabels || [],
     );
+    const prevCount = Number(this.instance._channelMap?.screenCount) || 0;
     this.instance._channelMap = this._merged.channelMap || null;
+    const labelsChanged =
+      prevLabels !==
+      JSON.stringify(this.instance._channelMap?.screenLabels || []);
     // WO-384: preset button captions read the screen name from a variable, so it has to follow a
     // rename in HighAsCG rather than being frozen at preset-build time.
-    if (
-      prevLabels !==
-      JSON.stringify(this.instance._channelMap?.screenLabels || [])
-    ) {
+    if (labelsChanged) {
       syncScreenLabelVariables(this.instance);
+    }
+    // Per-screen FTB presets and the screen dropdowns (named) follow the screen set.
+    if (
+      prevCount !== (Number(this.instance._channelMap?.screenCount) || 0) ||
+      labelsChanged
+    ) {
+      this.instance.updateActions?.();
+      this.instance.updatePresets?.();
     }
   }
 
@@ -302,6 +312,7 @@ class HighAsCGStateSync {
     }
     if (data.scene !== undefined) {
       this._merged.scene = _deepMergeScene(this._merged.scene, data.scene);
+      ingestGlobalBorders(this.instance, data.scene?.globalBorders);
     }
 
     if (data.channelMap !== undefined) {

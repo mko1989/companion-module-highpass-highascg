@@ -4,6 +4,9 @@ import { addStreamingPresets } from "./presets/streaming-presets.js";
 import { addLookPreviewLinkedPresets } from "./presets/look-preview-linked-presets.js";
 import { addPrvTakePresets } from "./presets/prv-take-presets.js";
 import { addScreenTimerPresets } from "./presets/screen-timer-presets.js";
+import { addPlaylistPresets } from "./presets/playlist-presets.js";
+import { addFtbPresets } from "./presets/ftb-presets.js";
+import { addGlobalBorderPresets } from "./presets/global-border-presets.js";
 import {
   connectionVariableExpression,
   connectionLabel,
@@ -43,6 +46,12 @@ export default function getPresets(instance) {
   const structure = [
     { id: "streaming", name: "HighAsCG · Stream & Record", definitions: [] },
     { id: "looks", name: "HighAsCG · Looks", definitions: [] },
+    { id: "ftb", name: "HighAsCG · Fade to black", definitions: [] },
+    {
+      id: "global_border",
+      name: "HighAsCG · Global border",
+      definitions: [],
+    },
     {
       id: "look_slots",
       name: "HighAsCG · Look Slots (PTZ style)",
@@ -55,6 +64,7 @@ export default function getPresets(instance) {
     },
     { id: "timeline", name: "HighAsCG · Timeline", definitions: [] },
     { id: "screen_timers", name: "HighAsCG · Screen timers", definitions: [] },
+    { id: "playlists", name: "HighAsCG · Playlists", definitions: [] },
     {
       id: "compose_preview",
       name: "HighAsCG · Compose preview",
@@ -562,6 +572,13 @@ export default function getPresets(instance) {
   // WO-384 (owner: "the timer doesnt have preset buttons") — uses the shared `add` so the
   // section ordering above stays the single source of truth.
   addScreenTimerPresets(instance, add);
+
+  // Playlists: the selected-playlist row plus one section per playlist (pushed onto `structure`).
+  addPlaylistPresets(instance, structure, add);
+
+  addFtbPresets(instance, add);
+
+  addGlobalBorderPresets(instance, add);
 
   add("timeline", "tl_duration_var", {
     type: "simple",

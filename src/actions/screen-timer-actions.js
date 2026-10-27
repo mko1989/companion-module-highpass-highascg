@@ -136,9 +136,11 @@ export default function (instance) {
       callback: async (action) => {
         const t = target(instance, action);
         if (!t) return;
-        const raw = await instance.parseVariablesInString(
-          String(action.options?.time ?? ""),
-        );
+        // `time`'s `useVariables: true` already makes Companion resolve any $(...) reference
+        // before the callback runs — @companion-module/base 2.1.0 removed
+        // parseVariablesInString (from both the class and the callback context) as no longer
+        // necessary for exactly this reason. Calling it here throws (WO-566).
+        const raw = String(action.options?.time ?? "");
         const seconds = parseTimeText(raw);
         if (seconds == null) {
           instance.log("warn", `Screen timer set time: cannot parse "${raw}"`);

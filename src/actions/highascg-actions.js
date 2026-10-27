@@ -13,6 +13,9 @@ import getStreamingActions from "./streaming-actions.js";
 import getMultiviewActions from "./multiview-actions.js";
 import getCountdownActions from "./countdown-actions.js";
 import getScreenTimerActions from "./screen-timer-actions.js";
+import getPlaylistActions from "./playlist-actions.js";
+import getFtbActions from "./ftb-actions.js";
+import getGlobalBorderActions from "./global-border-actions.js";
 
 export default function (instance) {
   return {
@@ -26,5 +29,8 @@ export default function (instance) {
     ...getMultiviewActions(instance),
     ...getCountdownActions(instance),
     ...getScreenTimerActions(instance),
+    ...getPlaylistActions(instance),
+    ...getFtbActions(instance),
+    ...getGlobalBorderActions(instance),
   };
 }

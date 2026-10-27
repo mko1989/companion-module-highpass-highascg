@@ -23,6 +23,8 @@ class ScreenTimerPoller {
     this._inFlight = null;
     /** Signature of the last published values, so an idle timer writes nothing. */
     this._lastSig = "";
+    /** Server clock minus this process's clock, remeasured every poll — see screen-timers.js. */
+    this._clockOffsetMs = 0;
   }
 
   get baseUrl() {
@@ -50,7 +52,15 @@ class ScreenTimerPoller {
       });
       if (!res.ok) return;
       const data = await res.json();
+      const localNowMs = Date.now();
       if (!data?.ok || !Array.isArray(data.timers)) return;
+
+      // Companion may run on a different machine than the server (e.g. a Raspberry Pi) with
+      // its own clock. Re-measuring this every poll means only clock drift BETWEEN polls can
+      // skew the display, not whether the two machines' clocks agree in absolute terms.
+      if (Number.isFinite(data.serverNowMs)) {
+        this._clockOffsetMs = data.serverNowMs - localNowMs;
+      }
 
       const prevIds = (this.instance._screenTimers || [])
         .map((t) => t.timerId)
@@ -74,7 +84,11 @@ class ScreenTimerPoller {
   }
 
   _publish() {
-    const vars = screenTimerVariableValues(this.instance._screenTimers || []);
+    const vars = screenTimerVariableValues(
+      this.instance._screenTimers || [],
+      Date.now(),
+      this._clockOffsetMs,
+    );
     const sig = JSON.stringify(vars);
     if (sig === this._lastSig) return;
     this._lastSig = sig;

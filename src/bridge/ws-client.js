@@ -1,4 +1,5 @@
 import WebSocket from "ws";
+import { InstanceStatus } from "@companion-module/base";
 import { getBridgePort } from "../host-target.js";
 import { sendCompanionHello } from "./companion-hello.js";
 
@@ -7,6 +8,8 @@ class HighAsCGWs {
     this.instance = instance;
     this.ws = null;
     this.reconnectTimer = null;
+    this._lastErrorMessage = "";
+    this._destroyed = false;
     this.init();
   }
 
@@ -29,6 +32,9 @@ class HighAsCGWs {
 
     this.ws.on("open", () => {
       this.instance.log("debug", "Connected to HighAsCG WebSocket bridge");
+      this._lastErrorMessage = "";
+      this.instance.updateStatus(InstanceStatus.Ok);
+      this.instance.checkFeedbacks("highascg_connected");
       sendCompanionHello(this.instance);
     });
 
@@ -126,17 +132,26 @@ class HighAsCGWs {
     });
 
     this.ws.on("close", () => {
+      if (this._destroyed) return;
       this.instance.log("debug", "HighAsCG WS closed, reconnecting...");
+      this.instance.updateStatus(
+        InstanceStatus.ConnectionFailure,
+        this._lastErrorMessage || "Disconnected from HighAsCG",
+      );
+      this.instance.checkFeedbacks("highascg_connected");
       this.instance.connectionRouter?.notifyBridgeDisconnected();
       this.scheduleReconnect();
     });
 
     this.ws.on("error", (err) => {
+      this._lastErrorMessage = err.message;
+      if (this._destroyed) return;
       this.instance.log("error", `HighAsCG WS error: ${err.message}`);
     });
   }
 
   scheduleReconnect() {
+    if (this._destroyed) return;
     if (this.reconnectTimer) return;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
@@ -145,6 +160,7 @@ class HighAsCGWs {
   }
 
   destroy() {
+    this._destroyed = true;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;

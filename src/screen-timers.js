@@ -75,20 +75,34 @@ export function sortTimers(timers) {
 
 /**
  * Seconds a timer shows right now (may be negative once it runs past zero).
+ *
+ * `cmdAt` and `targetTime` are anchored to the HighAsCG *server's* clock — Companion may be
+ * running on a different machine (e.g. a Raspberry Pi) with its own clock, possibly skewed from
+ * the server's. Subtracting a local `Date.now()` straight from a server timestamp bakes that
+ * skew into the displayed countdown. `clockOffsetMs` (server clock minus local clock, measured
+ * once per poll from the server's own `serverNowMs` — see bridge/screen-timer-poller.js) converts
+ * `nowMs` into the server's clock before any such subtraction, so only clock *drift* between polls
+ * matters, not the two machines' absolute clocks agreeing.
  * @param {object} timer
- * @param {number} [nowMs] — injectable for tests
+ * @param {number} [nowMs] — this process's own clock; injectable for tests
+ * @param {number} [clockOffsetMs] — server clock minus local clock, from the last poll
  * @returns {number}
  */
-export function computeDisplaySeconds(timer, nowMs = Date.now()) {
+export function computeDisplaySeconds(
+  timer,
+  nowMs = Date.now(),
+  clockOffsetMs = 0,
+) {
   if (!timer) return 0;
   const { config = {}, lastCmd, cmdAt, durationSec, remainingSec } = timer;
   const mode = config.mode || "duration";
+  const serverNowMs = nowMs + (Number(clockOffsetMs) || 0);
 
   if (mode === "clock") {
     const [h, m, s] = String(config.targetTime || "00:00:00")
       .split(":")
       .map((x) => parseInt(x, 10) || 0);
-    const now = new Date(nowMs);
+    const now = new Date(serverNowMs);
     const target = new Date(
       now.getFullYear(),
       now.getMonth(),
@@ -97,7 +111,7 @@ export function computeDisplaySeconds(timer, nowMs = Date.now()) {
       m,
       s,
     );
-    return (target.getTime() - nowMs) / 1000;
+    return (target.getTime() - serverNowMs) / 1000;
   }
 
   if (lastCmd === "pause") {
@@ -109,7 +123,7 @@ export function computeDisplaySeconds(timer, nowMs = Date.now()) {
     const basis = Number.isFinite(remainingSec)
       ? remainingSec
       : durationSec || config.durationSec || 0;
-    return basis - (nowMs - cmdAt) / 1000;
+    return basis - (serverNowMs - cmdAt) / 1000;
   }
   return durationSec || config.durationSec || 0;
 }
@@ -210,14 +224,19 @@ export function screenTimerVariableDefinitions(timers = []) {
  * Variable values for a polled timer list — only for timers that exist.
  * @param {object[]} timers
  * @param {number} [nowMs]
+ * @param {number} [clockOffsetMs] — server clock minus local clock; see computeDisplaySeconds
  * @returns {Record<string, string|number>}
  */
-export function screenTimerVariableValues(timers, nowMs = Date.now()) {
+export function screenTimerVariableValues(
+  timers,
+  nowMs = Date.now(),
+  clockOffsetMs = 0,
+) {
   const sorted = sortTimers(timers);
   /** @type {Record<string, string|number>} */
   const vars = { highascg_timer_count: sorted.length };
   for (const t of sorted) {
-    const secs = computeDisplaySeconds(t, nowMs);
+    const secs = computeDisplaySeconds(t, nowMs, clockOffsetMs);
     const set = (field, value) => {
       vars[timerVariableId(t, field)] = value;
     };

@@ -8,6 +8,8 @@ import {
   streamOutputChoices,
   recordOutputChoices,
 } from "./streaming-outputs.js";
+import getPlaylistFeedbacks from "./playlist-feedbacks.js";
+import { getGlobalBorderFeedbacks } from "./global-borders.js";
 
 /**
  * @file feedbacks.js
@@ -497,5 +499,7 @@ export default function (instance) {
         );
       },
     },
+    ...getPlaylistFeedbacks(instance),
+    ...getGlobalBorderFeedbacks(instance),
   };
 }

@@ -5,6 +5,8 @@ import {
   resolveComposePreviewChannels,
 } from "./compose-preview-channels.js";
 import { screenTimerVariableDefinitions } from "./screen-timers.js";
+import { playlistVariableDefinitions } from "./playlists.js";
+import { globalBorderVariableDefinitions } from "./global-borders.js";
 import {
   lookSlotLabelVariableDefinitions,
   screenLabelVariableDefinitions,
@@ -372,6 +374,18 @@ export default function getVariables(instance) {
     variableDefinitionsToObject(
       screenTimerVariableDefinitions(instance?._screenTimers || []),
     ),
+  );
+  // Playlists: the selected-playlist block + one block per playlist and per item, re-registered
+  // by the playlist poller whenever the catalog changes.
+  Object.assign(
+    base,
+    variableDefinitionsToObject(
+      playlistVariableDefinitions(instance?._playlists || []),
+    ),
+  );
+  Object.assign(
+    base,
+    variableDefinitionsToObject(globalBorderVariableDefinitions()),
   );
   /** @type {Record<string, { name: string }>} */
   const out = { ...base };

@@ -106,6 +106,23 @@ describe("screen-timer model", () => {
     );
   });
 
+  it("stays correct when Companion's own clock is skewed from the server's", () => {
+    const [b] = fixture();
+    // Companion's local clock reads 2 hours ahead of the server that stamped `cmdAt`.
+    const skewMs = 2 * 60 * 60 * 1000;
+    const skewedLocalNow = NOW + skewMs;
+
+    // Naively subtracting a local clock from a server timestamp (the pre-fix behavior, i.e.
+    // clockOffsetMs defaulting to 0) is wrecked by the skew.
+    assert.notEqual(computeDisplaySeconds(b, skewedLocalNow), 235);
+
+    // Once the poller has measured the offset (server clock minus local clock) from the
+    // server's own `serverNowMs`, the same skewed local clock gives the right answer again —
+    // only drift SINCE that measurement can matter, not the two clocks agreeing outright.
+    const clockOffsetMs = NOW - skewedLocalNow; // "server is 2h behind my clock"
+    assert.equal(computeDisplaySeconds(b, skewedLocalNow, clockOffsetMs), 235);
+  });
+
   it("formats negative and long times", () => {
     assert.equal(formatTimerClock(235), "00:03:55");
     assert.equal(formatTimerClock(-7), "-00:00:07");

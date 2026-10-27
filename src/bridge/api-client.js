@@ -432,6 +432,41 @@ class HighAsCGApi {
   async screenTimerAssign(body) {
     return this._post("/api/timers/assign", body);
   }
+
+  /**
+   * POST /api/ftb — fade every layer on a screen's PGM + PRV to black, then clear them.
+   * @param {{ screenIdx?: number, durationFrames?: number, tween?: string }} body — omit
+   *   `screenIdx` for all screens
+   */
+  async fadeToBlack(body = {}) {
+    return this._post("/api/ftb", body);
+  }
+
+  /**
+   * POST /api/scene/global-border — switch / restyle a screen's global border (WO-585).
+   * @param {{ screen: number, enabled?: boolean | 'toggle', type?: string, params?: object,
+   *   fadeDuration?: number, preset?: number }} body
+   * @returns {Promise<{ ok: boolean, enabled: boolean, border: object }>}
+   */
+  async globalBorder(body) {
+    return this._post("/api/scene/global-border", body);
+  }
+
+  /* ---- Playlists (list-mode look layers: /api/playlist/*) --------------------------- */
+
+  /** GET /api/playlist/state — every playlist (live, PRV-recalled, project-defined). */
+  async getPlaylistState() {
+    return this._get("/api/playlist/state");
+  }
+
+  /**
+   * POST /api/playlist/control — `next|prev|goto` (live, needs channel) or
+   * `step_preview|set_start` (not live, needs sceneId).
+   * @param {object} body
+   */
+  async playlistControl(body) {
+    return this._post("/api/playlist/control", body);
+  }
 }
 
 export { HighAsCGApi };

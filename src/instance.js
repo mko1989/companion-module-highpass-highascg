@@ -5,6 +5,7 @@ import getVariables from "./variables.js";
 import getPresets from "./presets.js";
 import getConfigFields from "./config-fields.js";
 import { HighAsCGBridge } from "./bridge/index.js";
+import { ingestGlobalBorders } from "./global-borders.js";
 import { ConnectionRouter } from "./connection-router.js";
 import { getMainHost, normalizeConnectionConfig } from "./host-target.js";
 import { isComposePreviewButtonsEnabled } from "./compose-preview-channels.js";
@@ -53,6 +54,23 @@ class HighAsCGInstance extends InstanceBase {
     this._lookAirFrames = new LookAirFrameCache(this);
     /** @type {object[]} — screen timers from GET /api/timers/list, kept sorted (screen, layer) */
     this._screenTimers = [];
+    /** @type {object[]} — playlists from GET /api/playlist/state, sorted (look name, layer) */
+    this._playlists = [];
+    /** @type {(object | null)[]} — per-screen global border slots (HighAsCG globalBorders) */
+    this._globalBorders = [];
+    /** @type {string} — Companion-side playlist cursor (`sceneId:layer`); empty = auto */
+    this._selectedPlaylistKey = "";
+  }
+
+  /** Re-read the playlists now (after an action moved one), refreshing their variables. */
+  refreshPlaylists() {
+    void this.bridge?.playlistPoller?.fetchNow();
+  }
+
+  /** Move the Companion playlist cursor and republish the selected-playlist variables. */
+  selectPlaylist(key) {
+    this._selectedPlaylistKey = String(key || "");
+    this.bridge?.playlistPoller?.publish();
   }
 
   /** Re-read the screen timers now (after an action changed one), refreshing their variables. */
@@ -174,6 +192,7 @@ class HighAsCGInstance extends InstanceBase {
   }
 
   reconnectAll() {
+    this.updateStatus(InstanceStatus.Connecting);
     this.initBridge();
   }
 
@@ -355,6 +374,7 @@ class HighAsCGInstance extends InstanceBase {
     if (!project || typeof project !== "object") return;
     const o = /** @type {Record<string, unknown>} */ (project);
     if (o.error || o.version == null) return;
+    ingestGlobalBorders(this, /** @type {any} */ (o.scenes)?.globalBorders);
     const scenes = this._scenesFromProjectBody(project);
     if (scenes.length === 0) return;
     this._setProjectScenesCache(scenes);

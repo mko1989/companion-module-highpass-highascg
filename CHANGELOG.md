@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.9] - 2026-09-30
+
+### Added — playlist control
+- Actions: **Playlist: Next / Previous item**, **Go to item**, **Play current item from the start**,
+  **Select playlist**, **Select next / previous playlist**. Same rules as the web Playlists panel:
+  a live playlist moves on program; a not-live one moves its start item (and the PRV render).
+- Variables (polled from `GET /api/playlist/state` every 1 s): per playlist
+  `highascg_playlist_<look8>_l<layer>_{name,item,item_number,next_item,prev_item,count,position,state,channel}`
+  plus `…_item_<n>` per item, and the same set for Companion's selected playlist as
+  `highascg_playlist_sel_*` — use `$(highascg:highascg_playlist_sel_item)` as a button name.
+- Feedbacks: `playlist_item_active`, `playlist_is_live`, `playlist_is_selected`.
+- Presets: "HighAsCG · Playlists" (selected-playlist Prev / Item / Next, playlist selectors) and
+  one section per playlist (Prev / Item / Next + a Go-to button per item).
+
+### Added — global border (needs HighAsCG with WO-585, `POST /api/scene/global-border`)
+- Actions: **Global border: On / Off / Toggle**, **Set colour** (main / glow / second / alternate),
+  **Set opacity** (%, `+N`/`-N` nudges), **Set parameter** (width, speed, pulse… — numbers, nudges or
+  true/false), **Set type**, **Set fade duration**, **Recall preset** (border inspector presets).
+  HighAsCG switches the border on air and saves it; the web UI follows.
+- Feedback `global_border_on`; variables `highascg_global_border_<n>_{state,type,color,opacity}`.
+- Presets "HighAsCG · Global border": one toggle per screen (red while on).
+- HighAsCG side of the same WO: a Companion look take no longer fades out a border that is on.
+
+### Added — fade to black
+- Actions **Fade to black: Screen** (screen dropdown named from HighAsCG) and
+  **Fade to black: All screens** — `POST /api/ftb`, same as the web FTB button: PGM + PRV fade
+  out, then clear. Fade length (1–120 frames, default 25) and tween are options.
+- Presets "HighAsCG · Fade to black": **FTB ALL** plus one **FTB <screen name>** per screen.
+- Screen dropdowns and per-screen presets now rebuild when the screen count or names change.
+
 ## [1.0.8] - 2026-07-30
 
 ### Changed (WO-394 — HighAsCG-only module)
