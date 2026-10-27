@@ -6,6 +6,9 @@ export const LOOK_AIR_FEEDBACKS = [
   // WO-572 (HighAsCG) — audio-only looks, tracked separately from the video look tally above.
   "look_audio_only_is_live",
   "look_audio_only_is_preview",
+  // Look presets (WO-791 HighAsCG): every destination of a preset on PGM / PRV.
+  "look_preset_on_pgm",
+  "look_preset_on_prv",
 ];
 
 /**

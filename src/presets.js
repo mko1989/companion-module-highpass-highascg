@@ -7,6 +7,7 @@ import { addScreenTimerPresets } from "./presets/screen-timer-presets.js";
 import { addPlaylistPresets } from "./presets/playlist-presets.js";
 import { addFtbPresets } from "./presets/ftb-presets.js";
 import { addGlobalBorderPresets } from "./presets/global-border-presets.js";
+import { addLookPresetPresets } from "./presets/look-preset-presets.js";
 import {
   connectionVariableExpression,
   connectionLabel,
@@ -46,6 +47,7 @@ export default function getPresets(instance) {
   const structure = [
     { id: "streaming", name: "HighAsCG · Stream & Record", definitions: [] },
     { id: "looks", name: "HighAsCG · Looks", definitions: [] },
+    { id: "look_presets", name: "HighAsCG · Look presets", definitions: [] },
     { id: "ftb", name: "HighAsCG · Fade to black", definitions: [] },
     {
       id: "global_border",
@@ -579,6 +581,8 @@ export default function getPresets(instance) {
   addFtbPresets(instance, add);
 
   addGlobalBorderPresets(instance, add);
+
+  addLookPresetPresets(instance, add);
 
   add("timeline", "tl_duration_var", {
     type: "simple",

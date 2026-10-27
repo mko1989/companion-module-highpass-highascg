@@ -10,6 +10,7 @@ import {
 } from "./streaming-outputs.js";
 import getPlaylistFeedbacks from "./playlist-feedbacks.js";
 import { getGlobalBorderFeedbacks } from "./global-borders.js";
+import { getLookPresetFeedbacks } from "./look-presets.js";
 
 /**
  * @file feedbacks.js
@@ -501,5 +502,6 @@ export default function (instance) {
     },
     ...getPlaylistFeedbacks(instance),
     ...getGlobalBorderFeedbacks(instance),
+    ...getLookPresetFeedbacks(instance),
   };
 }

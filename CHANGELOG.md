@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.10] - 2026-10-27
+
+### Added — look presets (HighAsCG `scenes.lookPresets`, `POST /api/scene/look-preset/recall`)
+- Action **Look preset: Recall** with a preset dropdown (named from HighAsCG) and three modes:
+  - **Recall to PRV**: the preset card click, which loads every destination to preview;
+  - **Recall to PGM (cut)**: the card's "Cut to PGM";
+  - **Recall to PGM with auto take**: loads to PRV first, then takes to PGM with each look's own
+    transition, like the card's ▶. The **Use the deck default transition** option takes with the
+    deck default transition instead.
+  Every screen of the preset is recalled at once (one PLAY batch). Empty destinations are cleared.
+- Feedbacks `look_preset_on_pgm` (red) and `look_preset_on_prv` (green): true while every
+  destination of the preset holds its look on that bus.
+- Presets "HighAsCG · Look presets": one PRV / PGM / AUTO row per preset. They follow HighAsCG's
+  live deck: a saved, renamed or removed preset updates the dropdowns and buttons.
+
 ## [1.0.9] - 2026-09-30
 
 ### Added — playlist control

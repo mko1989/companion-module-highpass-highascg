@@ -6,6 +6,7 @@ import getPresets from "./presets.js";
 import getConfigFields from "./config-fields.js";
 import { HighAsCGBridge } from "./bridge/index.js";
 import { ingestGlobalBorders } from "./global-borders.js";
+import { ingestLookPresets } from "./look-presets.js";
 import { ConnectionRouter } from "./connection-router.js";
 import { getMainHost, normalizeConnectionConfig } from "./host-target.js";
 import { isComposePreviewButtonsEnabled } from "./compose-preview-channels.js";
@@ -58,6 +59,9 @@ class HighAsCGInstance extends InstanceBase {
     this._playlists = [];
     /** @type {(object | null)[]} — per-screen global border slots (HighAsCG globalBorders) */
     this._globalBorders = [];
+    /** @type {{ id: string, name: string, items: object[] }[]} — HighAsCG look presets (scenes.lookPresets) */
+    this._lookPresets = [];
+    this._lookPresetsSig = "";
     /** @type {string} — Companion-side playlist cursor (`sceneId:layer`); empty = auto */
     this._selectedPlaylistKey = "";
   }
@@ -348,6 +352,7 @@ class HighAsCGInstance extends InstanceBase {
       try {
         const body = await this.bridge.api.getProject();
         scenes = this._scenesFromProjectBody(body);
+        ingestLookPresets(this, body?.scenes?.lookPresets);
       } catch (e) {
         this.log(
           "debug",
@@ -375,6 +380,7 @@ class HighAsCGInstance extends InstanceBase {
     const o = /** @type {Record<string, unknown>} */ (project);
     if (o.error || o.version == null) return;
     ingestGlobalBorders(this, /** @type {any} */ (o.scenes)?.globalBorders);
+    ingestLookPresets(this, /** @type {any} */ (o.scenes)?.lookPresets);
     const scenes = this._scenesFromProjectBody(project);
     if (scenes.length === 0) return;
     this._setProjectScenesCache(scenes);
@@ -456,6 +462,7 @@ class HighAsCGInstance extends InstanceBase {
    */
   applySceneDeck(deck) {
     if (!deck || typeof deck !== "object") return;
+    ingestLookPresets(this, /** @type {any} */ (deck).lookPresets);
     const merged = mergeDeckNamesFromSnapshots(deck);
     this._applyMergedLooksFromDeck(merged);
   }
@@ -495,6 +502,7 @@ class HighAsCGInstance extends InstanceBase {
       try {
         const st = await this.bridge.api.getState();
         deck = extractSceneDeck(st);
+        ingestLookPresets(this, deck?.lookPresets);
       } catch (e) {
         this.log("debug", `refreshPresetLooks getState: ${e.message || e}`);
       }

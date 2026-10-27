@@ -16,6 +16,7 @@ import getScreenTimerActions from "./screen-timer-actions.js";
 import getPlaylistActions from "./playlist-actions.js";
 import getFtbActions from "./ftb-actions.js";
 import getGlobalBorderActions from "./global-border-actions.js";
+import getLookPresetActions from "./look-preset-actions.js";
 
 export default function (instance) {
   return {
@@ -32,5 +33,6 @@ export default function (instance) {
     ...getPlaylistActions(instance),
     ...getFtbActions(instance),
     ...getGlobalBorderActions(instance),
+    ...getLookPresetActions(instance),
   };
 }

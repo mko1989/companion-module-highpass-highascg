@@ -452,6 +452,15 @@ class HighAsCGApi {
     return this._post("/api/scene/global-border", body);
   }
 
+  /**
+   * POST /api/scene/look-preset/recall — recall a look preset on every screen it covers (WO-601 / WO-782).
+   * @param {{ id: string, target: 'preview' | 'program', forceCut?: boolean, useGlobalTransition?: boolean }} body
+   * @returns {Promise<{ ok: boolean, target: string, items: { mainIdx: number, error: string | null }[] }>}
+   */
+  async recallLookPreset(body) {
+    return this._post("/api/scene/look-preset/recall", body);
+  }
+
   /* ---- Playlists (list-mode look layers: /api/playlist/*) --------------------------- */
 
   /** GET /api/playlist/state — every playlist (live, PRV-recalled, project-defined). */

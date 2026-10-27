@@ -42,6 +42,16 @@ When the bridge is enabled, HighAsCG internal variables are exposed as Companion
 
 Ensure the HighAsCG app is running and reachable before expecting bridge actions or variables to work.
 
+### Look presets
+
+**Look preset: Recall** recalls a look preset saved in HighAsCG on every screen it covers at once. It has three modes:
+
+- **Recall to PRV**: loads the preset to preview.
+- **Recall to PGM (cut)**: cuts the preset to program.
+- **Recall to PGM with auto take**: loads the preset to PRV, then transitions it to PGM with each look's own transition (the preset card's ▶). Tick **Use the deck default transition** to use the deck default instead.
+
+The feedbacks **Look preset is on program / preview** turn a button red or green. The preset group "HighAsCG · Look presets" has a PRV / PGM / AUTO row for each preset.
+
 ### Wake on LAN
 
 Store the target box **MAC address**, **hostname** (optional, for display), and **IP** (optional, for display) in Companion's instance configuration. Two actions are available:
