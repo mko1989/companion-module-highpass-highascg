@@ -8,6 +8,7 @@ import { addPlaylistPresets } from "./presets/playlist-presets.js";
 import { addFtbPresets } from "./presets/ftb-presets.js";
 import { addGlobalBorderPresets } from "./presets/global-border-presets.js";
 import { addLookPresetPresets } from "./presets/look-preset-presets.js";
+import { addPgmReadbackPresets } from "./presets/pgm-readback-presets.js";
 import {
   connectionVariableExpression,
   connectionLabel,
@@ -66,6 +67,7 @@ export default function getPresets(instance) {
     },
     { id: "timeline", name: "HighAsCG · Timeline", definitions: [] },
     { id: "screen_timers", name: "HighAsCG · Screen timers", definitions: [] },
+    { id: "pgm_readback", name: "HighAsCG · PGM readback", definitions: [] },
     { id: "playlists", name: "HighAsCG · Playlists", definitions: [] },
     {
       id: "compose_preview",
@@ -583,6 +585,9 @@ export default function getPresets(instance) {
   addGlobalBorderPresets(instance, add);
 
   addLookPresetPresets(instance, add);
+
+  // WO-803: display-only PGM readback, one per screen.
+  addPgmReadbackPresets(instance, add);
 
   add("timeline", "tl_duration_var", {
     type: "simple",

@@ -7,6 +7,7 @@ import {
 import { screenTimerVariableDefinitions } from "./screen-timers.js";
 import { playlistVariableDefinitions } from "./playlists.js";
 import { globalBorderVariableDefinitions } from "./global-borders.js";
+import { pgmLayerVariableDefinitions } from "./pgm-layers.js";
 import {
   lookSlotLabelVariableDefinitions,
   screenLabelVariableDefinitions,
@@ -386,6 +387,11 @@ export default function getVariables(instance) {
   Object.assign(
     base,
     variableDefinitionsToObject(globalBorderVariableDefinitions()),
+  );
+  // WO-803: PGM main layer readback, per screen.
+  Object.assign(
+    base,
+    variableDefinitionsToObject(pgmLayerVariableDefinitions()),
   );
   /** @type {Record<string, { name: string }>} */
   const out = { ...base };

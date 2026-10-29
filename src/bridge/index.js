@@ -5,6 +5,7 @@ import { ComposePreviewPoller } from "./compose-preview-poller.js";
 import { StreamingChannelPoller } from "./streaming-channel-poller.js";
 import { ScreenTimerPoller } from "./screen-timer-poller.js";
 import { PlaylistPoller } from "./playlist-poller.js";
+import { PgmLayerPoller } from "./pgm-layer-poller.js";
 import { sendCompanionHello } from "./companion-hello.js";
 
 class HighAsCGBridge {
@@ -16,11 +17,13 @@ class HighAsCGBridge {
     this.streamingChannelPoller = new StreamingChannelPoller(instance);
     this.screenTimerPoller = new ScreenTimerPoller(instance);
     this.playlistPoller = new PlaylistPoller(instance);
+    this.pgmLayerPoller = new PgmLayerPoller(instance);
     this.ws = new HighAsCGWs(instance);
     this.previewPoller.start();
     this.streamingChannelPoller.start();
     this.screenTimerPoller.start();
     this.playlistPoller.start();
+    this.pgmLayerPoller.start();
     this.api
       .getState()
       .then((s) => {
@@ -47,6 +50,10 @@ class HighAsCGBridge {
     if (this.playlistPoller) {
       this.playlistPoller.stop();
       this.playlistPoller = null;
+    }
+    if (this.pgmLayerPoller) {
+      this.pgmLayerPoller.stop();
+      this.pgmLayerPoller = null;
     }
     if (this.ws) {
       this.ws.destroy();

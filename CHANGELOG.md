@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.11] - 2026-10-29
+
+### Added — PGM readback (HighAsCG WO-803, `GET /api/screens/pgm-layer`)
+- Feedback **PGM readback: main layer remaining + progress** (`pgm_layer_readback`, option: screen).
+  Display only. Draws the screen name, the main PGM layer's remaining time (mm:ss, h:mm:ss over an
+  hour) and a progress bar along the bottom. Amber with PAUSED while paused; dim `--:--` when
+  nothing is timed on PGM (cleared, taken out, only looped backgrounds).
+- Presets "HighAsCG · PGM readback": one button per screen ("PGM readback — <screen>"). They carry
+  only the feedback; pressing them does nothing.
+- Variables per screen: `highascg_pgm_<n>_remaining`, `highascg_pgm_<n>_progress` (0-100),
+  `highascg_pgm_<n>_clip`.
+- Polled every 0.5 s; buttons redraw only when the shown second, bar pixel or state changes.
+
 ## [1.0.10] - 2026-10-27
 
 ### Added — look presets (HighAsCG `scenes.lookPresets`, `POST /api/scene/look-preset/recall`)
