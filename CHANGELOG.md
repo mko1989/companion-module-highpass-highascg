@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-10-29
+
+Version reset to 1.0.0 (the module was at 1.0.11 in package.json and 1.0.5 in companion/manifest.json). The changes listed under 1.0.11 below are in this release.
+
 ## [1.0.11] - 2026-10-29
 
 ### Added — PGM readback (HighAsCG WO-803, `GET /api/screens/pgm-layer`)

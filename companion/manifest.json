@@ -4,7 +4,7 @@
 	"name": "highpass-highascg",
 	"shortname": "highascg",
 	"description": "Companion module for the HighAsCG playout app",
-	"version": "1.0.5",
+	"version": "1.0.0",
 	"license": "MIT",
 	"manufacturer": "HighPass",
 	"repository": "git+https://github.com/bitfocus/companion-module-highpass-highascg.git",
