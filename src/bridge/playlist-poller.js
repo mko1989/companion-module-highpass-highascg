@@ -7,6 +7,7 @@
  */
 
 import { getBridgePort } from "../host-target.js";
+import { authHeaders } from "./auth-headers.js";
 import {
   playlistCatalogSignature,
   playlistVariableValues,
@@ -52,6 +53,7 @@ class PlaylistPoller {
     try {
       const res = await fetch(`${this.baseUrl}/api/playlist/state`, {
         signal: AbortSignal.timeout(5000),
+        headers: authHeaders(this.instance.config),
       });
       if (!res.ok) return;
       const data = await res.json();

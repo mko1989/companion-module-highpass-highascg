@@ -5,6 +5,7 @@
  */
 
 import { getBridgePort } from "../host-target.js";
+import { authHeaders } from "./auth-headers.js";
 
 /** Fallback poll interval when WS is down. */
 const FALLBACK_POLL_MS = 2000;
@@ -59,6 +60,7 @@ class StreamingChannelPoller {
     try {
       const res = await fetch(url, {
         signal: AbortSignal.timeout(5000),
+        headers: authHeaders(this.instance.config),
       });
       if (!res.ok) return;
 

@@ -1,5 +1,6 @@
 import WebSocket from "ws";
 import { InstanceStatus } from "@companion-module/base";
+import { authHeaders } from "./auth-headers.js";
 import { getBridgePort } from "../host-target.js";
 import { sendCompanionHello } from "./companion-hello.js";
 
@@ -28,7 +29,9 @@ class HighAsCGWs {
 
     const url = `ws://${host}:${getBridgePort(this.instance.config)}/api/ws`;
     this.instance.log("debug", `Connecting to HighAsCG WS: ${url}`);
-    this.ws = new WebSocket(url);
+    this.ws = new WebSocket(url, {
+      headers: authHeaders(this.instance.config),
+    });
 
     this.ws.on("open", () => {
       this.instance.log("debug", "Connected to HighAsCG WebSocket bridge");

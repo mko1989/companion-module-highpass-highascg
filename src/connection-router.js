@@ -1,4 +1,5 @@
 import { getBackupHost, getBridgePort, getMainHost } from "./host-target.js";
+import { authHeaders } from "./bridge/auth-headers.js";
 
 const HEALTH_INTERVAL_MS = 5000;
 const MAIN_FAIL_THRESHOLD = 2;
@@ -97,7 +98,10 @@ class ConnectionRouter {
     try {
       const res = await fetch(
         `http://${host}:${port}/api/companion/control-status`,
-        { signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) },
+        {
+          signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+          headers: authHeaders(cfg),
+        },
       );
       if (res.ok) {
         const body = await res.json();
@@ -110,6 +114,7 @@ class ConnectionRouter {
     try {
       const res = await fetch(`http://${host}:${port}/api/state`, {
         signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+        headers: authHeaders(cfg),
       });
       if (res.ok) {
         return {

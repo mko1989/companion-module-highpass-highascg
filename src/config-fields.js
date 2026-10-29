@@ -45,6 +45,17 @@ export default function () {
       max: 65535,
     },
     {
+      type: "secret-text",
+      id: "api_password",
+      label: "HighAsCG password",
+      width: 6,
+      default: "",
+      description:
+        "The box's shared API password. Leave empty while API authentication is off.",
+      tooltip:
+        "The box's shared API password. Leave empty while API authentication is off.",
+    },
+    {
       type: "static-text",
       id: "sep_preview",
       width: 12,

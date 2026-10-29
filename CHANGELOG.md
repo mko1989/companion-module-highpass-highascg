@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-10-29
+
+### Added
+
+- HighAsCG password (`api_password`, secret field): sent as `Authorization: Bearer` on every HTTP poll, the health probes and the WebSocket, so the module keeps working when the box enforces API auth (HighAsCG WO-811). Empty = no header (auth off).
+
 ## [1.0.0] - 2026-10-29
 
 Version reset to 1.0.0 (the module was at 1.0.11 in package.json and 1.0.5 in companion/manifest.json). The changes listed under 1.0.11 below are in this release.

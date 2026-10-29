@@ -9,6 +9,7 @@ import {
   resolveComposePreviewChannels,
 } from "../compose-preview-channels.js";
 import { getBridgePort } from "../host-target.js";
+import { authHeaders } from "./auth-headers.js";
 
 /** Fallback poll interval when WS is down (not the live update cadence). */
 const FALLBACK_POLL_MS = 1500;
@@ -122,7 +123,7 @@ class ComposePreviewPoller {
 
       const res = await fetch(url, {
         signal: AbortSignal.timeout(5000),
-        headers,
+        headers: { ...headers, ...authHeaders(this.instance.config) },
       });
       if (res.status === 304) return;
       if (!res.ok) return;

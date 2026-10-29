@@ -5,6 +5,7 @@
  */
 
 import { getBridgePort } from "../host-target.js";
+import { authHeaders } from "./auth-headers.js";
 import {
   PGM_READBACK_FEEDBACK_ID,
   pgmLayerVariableValues,
@@ -49,6 +50,7 @@ class PgmLayerPoller {
     try {
       const res = await fetch(`${this.baseUrl}/api/screens/pgm-layer`, {
         signal: AbortSignal.timeout(3000),
+        headers: authHeaders(this.instance.config),
       });
       if (!res.ok) return;
       const data = await res.json();

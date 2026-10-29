@@ -4,6 +4,7 @@
  */
 
 import { getBridgePort } from "../host-target.js";
+import { authHeaders } from "./auth-headers.js";
 
 /** Avoid hung fetch (Companion IPC action timeout) when host is wrong or unreachable. */
 const FETCH_TIMEOUT_MS = 20000;
@@ -24,7 +25,10 @@ class HighAsCGApi {
     try {
       const response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders(this.instance.config),
+        },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       });
@@ -47,6 +51,7 @@ class HighAsCGApi {
     const url = `${this.baseUrl}${path}`;
     try {
       const response = await fetch(url, {
+        headers: authHeaders(this.instance.config),
         signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);

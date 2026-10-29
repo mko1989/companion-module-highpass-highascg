@@ -7,6 +7,7 @@
  */
 
 import { getBridgePort } from "../host-target.js";
+import { authHeaders } from "./auth-headers.js";
 import { screenTimerVariableValues, sortTimers } from "../screen-timers.js";
 
 /** How often the record list is re-read (config/transport changes made elsewhere). */
@@ -49,6 +50,7 @@ class ScreenTimerPoller {
     try {
       const res = await fetch(`${this.baseUrl}/api/timers/list`, {
         signal: AbortSignal.timeout(5000),
+        headers: authHeaders(this.instance.config),
       });
       if (!res.ok) return;
       const data = await res.json();
