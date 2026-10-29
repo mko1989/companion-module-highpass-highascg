@@ -9,6 +9,7 @@ import { ingestGlobalBorders } from "./global-borders.js";
 import { ingestLookPresets } from "./look-presets.js";
 import { ConnectionRouter } from "./connection-router.js";
 import { getMainHost, normalizeConnectionConfig } from "./host-target.js";
+import { withSecrets } from "./bridge/auth-headers.js";
 import { isComposePreviewButtonsEnabled } from "./compose-preview-channels.js";
 import {
   buildDeckSceneById,
@@ -104,8 +105,7 @@ class HighAsCGInstance extends InstanceBase {
 
   async init(config, isFirstInit, secrets) {
     void isFirstInit;
-    void secrets;
-    this.config = normalizeConnectionConfig(config);
+    this.config = normalizeConnectionConfig(withSecrets(config, secrets));
     this.updateStatus(InstanceStatus.Connecting);
 
     this.initConnectionRouter();
@@ -134,15 +134,16 @@ class HighAsCGInstance extends InstanceBase {
   }
 
   async configUpdated(config, secrets) {
-    void secrets;
     const prev = normalizeConnectionConfig(this.config);
-    this.config = normalizeConnectionConfig(config);
+    this.config = normalizeConnectionConfig(withSecrets(config, secrets));
 
     const hostChanged = getMainHost(prev) !== getMainHost(this.config);
     const backupChanged =
       !!prev.hot_backup_enabled !== !!this.config.hot_backup_enabled ||
       String(prev.backup_host || "") !== String(this.config.backup_host || "");
     const portChanged = prev.highascg_port !== this.config.highascg_port;
+    // the WebSocket sends the password only on its upgrade request
+    const passwordChanged = prev.api_password !== this.config.api_password;
     const previewButtonsChanged =
       isComposePreviewButtonsEnabled(prev) !==
       isComposePreviewButtonsEnabled(this.config);
@@ -154,7 +155,7 @@ class HighAsCGInstance extends InstanceBase {
       this.initConnectionRouter();
     }
 
-    if (hostChanged || portChanged || backupChanged) {
+    if (hostChanged || portChanged || backupChanged || passwordChanged) {
       this.reconnectAll();
     }
 
