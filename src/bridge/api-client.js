@@ -150,8 +150,12 @@ class HighAsCGApi {
     return this._post(`/api/timelines/${encodeURIComponent(id)}/pause`, {});
   }
 
-  async timelineStop(id) {
-    return this._post(`/api/timelines/${encodeURIComponent(id)}/stop`, {});
+  /** @param {{ force?: boolean }} [opts] — force: stop even when live on program (server 409s otherwise) */
+  async timelineStop(id, opts = {}) {
+    return this._post(
+      `/api/timelines/${encodeURIComponent(id)}/stop`,
+      opts.force ? { force: true } : {},
+    );
   }
 
   async timelineSeek(id, ms) {

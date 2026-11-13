@@ -38,6 +38,16 @@ When the bridge is enabled, HighAsCG internal variables are exposed as Companion
 
 - **Direct TCP:** Play Clip, Stop Layer, Clear, Raw AMCP.
 - **Bridge:** Scene Take, Timeline Play/Stop, Audio Volume (via HighAsCG API), Apply Multiview Layout.
+
+### Timeline transport
+
+Every timeline action has a **Timeline** dropdown. Its default, **Active timeline**, is the one playing, else the one open in the HighAsCG timeline editor, so a button needs no setup. You can also pick a timeline by name, or type its id or name.
+
+- **Play / Pause** (toggle), **Play**, **Pause**, **Stop**, **Seek**, **Jump back / forward**, **Set loop** (toggle / on / off), **Take**, **Set sendTo routing**.
+- **Stop** is forced by default ("Stop even when it is live on program"). HighAsCG refuses to stop a timeline that is on program unless the stop is deliberate.
+- Play uses the timeline's own routing from HighAsCG. Tick **Override the timeline's routing** to send it to a given screen / preview / program.
+- Feedbacks: **Timeline: transport state** (playing / paused / stopped) and **Timeline: loop is on**.
+- Presets (HighAsCG · Timeline): an active-timeline row (Play/Pause with name and position, Stop, Start, −5 s, +5 s, Loop) and Play/Pause + Stop for each timeline of the show. They follow the show when timelines are added or renamed.
 - **Wake on LAN:** Wake stored target or arbitrary MAC via magic packet (target must be powered off via soft shutdown, not cold boot).
 
 Ensure the HighAsCG app is running and reachable before expecting bridge actions or variables to work.

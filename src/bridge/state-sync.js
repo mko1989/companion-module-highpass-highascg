@@ -14,6 +14,7 @@ import { ingestGlobalBorders } from "../global-borders.js";
 import { sendCompanionHello } from "./companion-hello.js";
 import { PREVIEW } from "./contract.js";
 import { syncScreenLabelVariables } from "../look-vars.js";
+import { timelineListSignature } from "../timelines.js";
 
 function _str(v) {
   if (v == null) return "";
@@ -37,6 +38,7 @@ function _deepMergeTimeline(a, b) {
   const out = { ...(a || {}) };
   if (!b || typeof b !== "object") return out;
   if (b.list != null) out.list = b.list;
+  if (b.activeId != null) out.activeId = b.activeId;
   if (b.playback != null) out.playback = b.playback;
   if (b.tick != null && b.tick.timelineId != null) {
     out.playback = {
@@ -107,6 +109,8 @@ class HighAsCGStateSync {
     this._serverVarKeysSig = "";
     /** @type {string} */
     this._channelMapSig = "";
+    /** @type {string | undefined} */
+    this._timelineListSig = undefined;
     this._previewGate = new PreviewVariableGate();
   }
 
@@ -309,6 +313,14 @@ class HighAsCGStateSync {
         this._merged.timeline,
         data.timeline,
       );
+      // Timeline dropdowns + per-timeline presets follow the show's timeline list.
+      const sig = timelineListSignature(this._merged.timeline.list);
+      if (sig !== this._timelineListSig) {
+        this._timelineListSig = sig;
+        this.instance.updateActions?.();
+        this.instance.updateFeedbacks?.();
+        this.instance.updatePresets?.();
+      }
     }
     if (data.scene !== undefined) {
       this._merged.scene = _deepMergeScene(this._merged.scene, data.scene);

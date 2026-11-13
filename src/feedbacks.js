@@ -12,6 +12,7 @@ import getPlaylistFeedbacks from "./playlist-feedbacks.js";
 import { getGlobalBorderFeedbacks } from "./global-borders.js";
 import { getLookPresetFeedbacks } from "./look-presets.js";
 import { getPgmLayerFeedbacks } from "./pgm-layers.js";
+import { getTimelineFeedbacks } from "./timeline-feedbacks.js";
 
 /**
  * @file feedbacks.js
@@ -505,5 +506,6 @@ export default function (instance) {
     ...getGlobalBorderFeedbacks(instance),
     ...getLookPresetFeedbacks(instance),
     ...getPgmLayerFeedbacks(instance),
+    ...getTimelineFeedbacks(instance),
   };
 }

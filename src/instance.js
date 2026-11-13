@@ -25,6 +25,7 @@ import {
 import { LookAirFrameCache } from "./look-air-frame.js";
 import { extractProjectScenes, extractSceneDeck } from "./project-looks.js";
 import { sendCompanionHello } from "./bridge/companion-hello.js";
+import { ingestProjectTimelines } from "./timelines.js";
 
 class HighAsCGInstance extends InstanceBase {
   constructor(internal) {
@@ -354,6 +355,7 @@ class HighAsCGInstance extends InstanceBase {
         const body = await this.bridge.api.getProject();
         scenes = this._scenesFromProjectBody(body);
         ingestLookPresets(this, body?.scenes?.lookPresets);
+        ingestProjectTimelines(this, body);
       } catch (e) {
         this.log(
           "debug",
@@ -382,6 +384,7 @@ class HighAsCGInstance extends InstanceBase {
     if (o.error || o.version == null) return;
     ingestGlobalBorders(this, /** @type {any} */ (o.scenes)?.globalBorders);
     ingestLookPresets(this, /** @type {any} */ (o.scenes)?.lookPresets);
+    ingestProjectTimelines(this, project);
     const scenes = this._scenesFromProjectBody(project);
     if (scenes.length === 0) return;
     this._setProjectScenesCache(scenes);

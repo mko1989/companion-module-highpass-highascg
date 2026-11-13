@@ -9,6 +9,7 @@ import { addFtbPresets } from "./presets/ftb-presets.js";
 import { addGlobalBorderPresets } from "./presets/global-border-presets.js";
 import { addLookPresetPresets } from "./presets/look-preset-presets.js";
 import { addPgmReadbackPresets } from "./presets/pgm-readback-presets.js";
+import { addTimelinePresets } from "./presets/timeline-presets.js";
 import {
   connectionVariableExpression,
   connectionLabel,
@@ -430,80 +431,8 @@ export default function getPresets(instance) {
     feedbacks: [],
   });
 
-  add("timeline", "tl_play_template", {
-    type: "simple",
-    name: "Play timeline (set id)",
-    style: {
-      text: "TL PLAY\\n(id in action)",
-      size: "14",
-      color: combineRgb(255, 255, 255),
-      bgcolor: combineRgb(30, 80, 120),
-    },
-    steps: [
-      {
-        down: [
-          {
-            actionId: "timeline_play",
-            options: {
-              id: "",
-              from_ms: "",
-              screen_index: 0,
-              tl_preview: true,
-              tl_program: true,
-            },
-          },
-        ],
-        up: [],
-      },
-    ],
-    feedbacks: [],
-  });
-
-  add("timeline", "tl_pause_template", {
-    type: "simple",
-    name: "Pause timeline (set id)",
-    style: {
-      text: "TL PAUSE",
-      size: "14",
-      color: combineRgb(255, 255, 255),
-      bgcolor: combineRgb(40, 60, 90),
-    },
-    steps: [
-      {
-        down: [
-          {
-            actionId: "timeline_pause",
-            options: { id: "" },
-          },
-        ],
-        up: [],
-      },
-    ],
-    feedbacks: [],
-  });
-
-  add("timeline", "tl_stop_template", {
-    type: "simple",
-    name: "Stop timeline (set id)",
-    style: {
-      text: "TL STOP",
-      size: "14",
-      color: combineRgb(255, 255, 255),
-      bgcolor: combineRgb(50, 50, 70),
-    },
-    steps: [
-      {
-        down: [
-          {
-            actionId: "timeline_stop",
-            options: { id: "" },
-          },
-        ],
-        up: [],
-      },
-    ],
-    feedbacks: [],
-  });
+  // Transport for the active timeline + one Play/Pause and Stop per timeline (a blank id did nothing).
+  addTimelinePresets(instance, add);
 
   add("timeline", "tl_remaining_var", {
     type: "simple",

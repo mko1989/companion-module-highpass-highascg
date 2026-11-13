@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-11-13
+
+### Fixed
+
+- Timeline transport did nothing. Every timeline action had a free-text "Timeline id" field, and the Timeline presets left it empty, so a press returned without a call or a log line. The field is now a **Timeline** dropdown (the show's timelines by name) whose default **Active timeline** is the one playing, else the one open in the HighAsCG editor, else the last played.
+- **Stop** on a timeline live on program was refused by HighAsCG (409, needs `force`). Stop now sends `force: true` by default (option "Stop even when it is live on program").
+- Play no longer overrides the timeline's routing with a fixed screen 1 preview + program; it plays where HighAsCG routes it unless **Override the timeline's routing** is ticked.
+- Failures are logged with the timeline's name.
+
+### Added
+
+- Actions **Timeline: Play / Pause** (toggle) and **Timeline: Jump back / forward**; **Set loop** gains toggle.
+- Feedbacks **Timeline: transport state** (playing / paused / stopped) and **Timeline: loop is on**.
+- Timeline presets that work as dropped: the active-timeline row (Play/Pause with name + position, Stop, Start, −5 s, +5 s, Loop) and Play/Pause + Stop per timeline. Dropdowns and presets follow the show's timeline list (`project_sync`).
+
 ## [1.0.2] - 2026-10-29
 
 ### Fixed
