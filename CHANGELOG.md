@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2026-11-13
+
+### Fixed
+
+- **Play / Pause** preset buttons did nothing on Companion 5: the preset stored the action without its routing options and Companion refused it ("screen_index: A value must be provided"). Presets now carry every option, and an upgrade script repairs Play / Pause buttons made with 1.0.3 / 1.0.4.
+
 ## [1.0.4] - 2026-11-13
 
 ### Changed

@@ -8,6 +8,15 @@ import { combineRgb } from "@companion-module/base";
 import { connectionLabel } from "../connection-expressions.js";
 import { ACTIVE, timelineState, timelineName } from "../timelines.js";
 
+// Companion 5 rejects an action whose stored options miss a field ("A value must be provided"),
+// so a preset carries every option of the action.
+const ROUTING_DEFAULTS = {
+  override_routing: false,
+  screen_index: 0,
+  tl_preview: false,
+  tl_program: true,
+};
+
 const WHITE = combineRgb(255, 255, 255);
 const GREEN = combineRgb(0, 150, 0);
 const AMBER = combineRgb(190, 120, 0);
@@ -64,7 +73,7 @@ export function addTimelinePresets(instance, add) {
       [
         {
           actionId: "timeline_toggle",
-          options: { ...active, override_routing: false },
+          options: { ...active, ...ROUTING_DEFAULTS },
         },
       ],
       stateFeedbacks(ACTIVE),
@@ -135,7 +144,7 @@ export function addTimelinePresets(instance, add) {
         [
           {
             actionId: "timeline_toggle",
-            options: { id, override_routing: false },
+            options: { id, ...ROUTING_DEFAULTS },
           },
         ],
         stateFeedbacks(id),

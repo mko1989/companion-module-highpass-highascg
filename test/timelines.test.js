@@ -226,4 +226,66 @@ describe("timeline: tally + presets", () => {
       "timeline_state",
     );
   });
+  it("every preset action and feedback carries all options of its definition", async () => {
+    const inst = stub();
+    const actions = getTimelineActions(inst);
+    const { getTimelineFeedbacks } =
+      await import("../src/timeline-feedbacks.js");
+    const feedbacks = getTimelineFeedbacks(inst);
+    const got = {};
+    addTimelinePresets(inst, (sec, key, p) => (got[key] = p));
+    for (const [key, p] of Object.entries(got)) {
+      for (const a of p.steps[0].down) {
+        for (const o of actions[a.actionId].options) {
+          assert.ok(o.id in a.options, `${key}: ${a.actionId} misses ${o.id}`);
+        }
+      }
+      for (const f of p.feedbacks) {
+        for (const o of feedbacks[f.feedbackId].options) {
+          assert.ok(
+            o.id in f.options,
+            `${key}: ${f.feedbackId} misses ${o.id}`,
+          );
+        }
+      }
+    }
+  });
+  it("upgrade script fills the routing options a 1.0.3 / 1.0.4 preset button lacks", async () => {
+    const { fillTimelineRoutingOptions } = await import("../src/upgrades.js");
+    const old = {
+      id: "a1",
+      controlId: "c1",
+      actionId: "timeline_toggle",
+      options: {
+        id: { isExpression: false, value: "" },
+        override_routing: { isExpression: false, value: false },
+      },
+    };
+    const fine = {
+      id: "a2",
+      controlId: "c1",
+      actionId: "timeline_stop",
+      options: {},
+    };
+    const r = fillTimelineRoutingOptions(
+      {},
+      { actions: [old, fine], feedbacks: [] },
+    );
+    assert.deepEqual(
+      r.updatedActions.map((a) => a.id),
+      ["a1"],
+    );
+    assert.deepEqual(old.options.screen_index, {
+      isExpression: false,
+      value: 0,
+    });
+    assert.deepEqual(old.options.tl_program, {
+      isExpression: false,
+      value: true,
+    });
+    assert.equal(
+      fillTimelineRoutingOptions({}, { actions: [old] }).updatedActions.length,
+      0,
+    );
+  });
 });
