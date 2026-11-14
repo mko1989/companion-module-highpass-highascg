@@ -10,7 +10,6 @@ import { ingestLookPresets } from "./look-presets.js";
 import { ConnectionRouter } from "./connection-router.js";
 import { getMainHost, normalizeConnectionConfig } from "./host-target.js";
 import { withSecrets } from "./bridge/auth-headers.js";
-import { isComposePreviewButtonsEnabled } from "./compose-preview-channels.js";
 import {
   buildDeckSceneById,
   buildPresetLooks,
@@ -22,9 +21,7 @@ import {
   syncLookLabelVariables,
   syncLookSlotLabelVariables,
 } from "./look-vars.js";
-import { LookAirFrameCache } from "./look-air-frame.js";
 import { extractProjectScenes, extractSceneDeck } from "./project-looks.js";
-import { sendCompanionHello } from "./bridge/companion-hello.js";
 import { ingestProjectTimelines } from "./timelines.js";
 
 class HighAsCGInstance extends InstanceBase {
@@ -54,7 +51,6 @@ class HighAsCGInstance extends InstanceBase {
     this._refreshPresetLooksPromise = null;
     /** @type {string} — when look ids / screen layout change (triggers preset catalog rebuild) */
     this._looksCatalogSig = "";
-    this._lookAirFrames = new LookAirFrameCache(this);
     /** @type {object[]} — screen timers from GET /api/timers/list, kept sorted (screen, layer) */
     this._screenTimers = [];
     /** @type {object[]} — playlists from GET /api/playlist/state, sorted (look name, layer) */
@@ -128,9 +124,6 @@ class HighAsCGInstance extends InstanceBase {
       this.connectionRouter.stop();
       this.connectionRouter = null;
     }
-    if (this._lookAirFrames) {
-      this._lookAirFrames.reset();
-    }
     this.log("debug", "HighAsCG Instance destroyed");
   }
 
@@ -145,9 +138,6 @@ class HighAsCGInstance extends InstanceBase {
     const portChanged = prev.highascg_port !== this.config.highascg_port;
     // the WebSocket sends the password only on its upgrade request
     const passwordChanged = prev.api_password !== this.config.api_password;
-    const previewButtonsChanged =
-      isComposePreviewButtonsEnabled(prev) !==
-      isComposePreviewButtonsEnabled(this.config);
 
     if (hostChanged || backupChanged) {
       this.connectionRouter?.resetTarget();
@@ -158,22 +148,6 @@ class HighAsCGInstance extends InstanceBase {
 
     if (hostChanged || portChanged || backupChanged || passwordChanged) {
       this.reconnectAll();
-    }
-
-    if (previewButtonsChanged) {
-      this.updateVariables();
-      this.updatePresets();
-      if (this.bridge?.previewPoller) {
-        this.bridge.previewPoller.stop();
-        if (isComposePreviewButtonsEnabled(this.config)) {
-          this.bridge.previewPoller.start();
-          this.bridge.api
-            ?.getState()
-            .then((s) => this.handleBridgeState(s))
-            .catch(() => {});
-        }
-      }
-      sendCompanionHello(this);
     }
 
     this._syncConnectionVariables();

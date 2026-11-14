@@ -1,8 +1,6 @@
 import { combineRgb } from "@companion-module/base";
 import { filterLooksForScreen } from "../look-scope.js";
-import { buildLookTallyStyleOverrides } from "../look-air-overrides.js";
 import { lookLabelVariableId } from "../look-vars.js";
-import { lookAirFrameVariableId } from "../look-air-frame.js";
 import {
   connectionVariableExpression,
   connectionLabel,
@@ -11,37 +9,24 @@ import {
 } from "../connection-expressions.js";
 import {
   BORDER_WIDTH_PX,
-  LABEL_AIR_ID,
   LABEL_IDLE_FONTSIZE,
-  LABEL_ON_AIR_FONTSIZE,
   TRANSPARENT_FILL,
 } from "../look-button-style.js";
+
+/** Tally = the border of the bus the look is on (red PGM, green PRV). */
+function showBorder(borderId) {
+  return [
+    {
+      elementId: borderId,
+      elementProperty: "opacity",
+      override: presetLiteral(100),
+    },
+  ];
+}
 
 /** Shared by action + feedbacks — change once on the button, everything stays in sync. */
 const LOCAL_LOOK_ID = presetExpression("$(local:look_id)");
 const LOCAL_SCREEN_INDEX = presetExpression("$(local:screen_index)");
-
-/**
- * @param {number} channel
- * @param {string} id
- */
-function channelPreviewLayer(_channel, id) {
-  return {
-    type: "image",
-    id,
-    x: 0,
-    y: 0,
-    width: 100,
-    height: 100,
-    opacity: 0,
-    // Bind image only when PGM/PRV feedback is active — avoids decoding on every
-    // channel preview update for all idle look buttons (Stream Deck USB upload).
-    base64Image: presetLiteral(null),
-    halign: "center",
-    valign: "center",
-    fillMode: "fit",
-  };
-}
 
 /**
  * Hollow border frame using a box (opacity toggled by feedback — more reliable than group/line).
@@ -88,8 +73,7 @@ export function getLookPreviewScreenLayouts(instance) {
     const pgmCh = Number(programChannels[i]) || i + 1;
     const rawPrv = previewChannels[i];
     const prvNum = rawPrv != null ? Number(rawPrv) : NaN;
-    const hasPrv =
-      Number.isFinite(prvNum) && prvNum > 0 && prvNum !== pgmCh;
+    const hasPrv = Number.isFinite(prvNum) && prvNum > 0 && prvNum !== pgmCh;
     layouts.push({
       screenIndex: i,
       pgmCh,
@@ -114,10 +98,6 @@ function buildLookPreviewLinkedPreset(look, layout, instance) {
   const labelExpr = connectionVariableExpression(instance, labelVar);
 
   const elements = [
-    channelPreviewLayer(layout.pgmCh, "preview_pgm"),
-    ...(hasPrv && layout.prvCh != null
-      ? [channelPreviewLayer(layout.prvCh, "preview_prv")]
-      : []),
     borderBox("pgm_border", combineRgb(220, 0, 0)),
     ...(hasPrv ? [borderBox("prv_border", combineRgb(0, 180, 0))] : []),
     {
@@ -137,23 +117,6 @@ function buildLookPreviewLinkedPreset(look, layout, instance) {
       halign: "center",
       valign: "center",
     },
-    {
-      type: "text",
-      id: LABEL_AIR_ID,
-      x: 0,
-      y: 0,
-      width: 100,
-      height: 100,
-      opacity: 0,
-      text: labelExpr,
-      fontsize: LABEL_ON_AIR_FONTSIZE,
-      fontsizeAllowShrink: false,
-      font: "companion-sans",
-      color: combineRgb(255, 255, 255),
-      outlineColor: combineRgb(0, 0, 0),
-      halign: "center",
-      valign: "center",
-    },
   ];
 
   const feedbackOptions = {
@@ -166,13 +129,7 @@ function buildLookPreviewLinkedPreset(look, layout, instance) {
     {
       feedbackId: "look_on_pgm",
       options: feedbackOptions,
-      styleOverrides: buildLookTallyStyleOverrides({
-        instance,
-        lookId: look.id,
-        borderId: "pgm_border",
-        previewLayerId: "preview_pgm",
-        previewVariableId: lookAirFrameVariableId(look.id),
-      }),
+      styleOverrides: showBorder("pgm_border"),
     },
   ];
 
@@ -180,13 +137,7 @@ function buildLookPreviewLinkedPreset(look, layout, instance) {
     feedbacks.push({
       feedbackId: "look_on_prv_for_screen",
       options: feedbackOptions,
-      styleOverrides: buildLookTallyStyleOverrides({
-        instance,
-        lookId: look.id,
-        borderId: "prv_border",
-        previewLayerId: "preview_prv",
-        previewVariableId: lookAirFrameVariableId(look.id),
-      }),
+      styleOverrides: showBorder("prv_border"),
     });
   }
 
@@ -238,7 +189,9 @@ function buildLookPreviewLinkedPreset(look, layout, instance) {
  * @param {import('../instance.js').HighAsCGInstance} instance
  */
 export function addLookPreviewLinkedPresets(presets, structure, instance) {
-  const allLooks = Array.isArray(instance._presetLooks) ? instance._presetLooks : [];
+  const allLooks = Array.isArray(instance._presetLooks)
+    ? instance._presetLooks
+    : [];
   const layouts = getLookPreviewScreenLayouts(instance);
 
   for (let i = structure.length - 1; i >= 0; i -= 1) {
@@ -251,7 +204,7 @@ export function addLookPreviewLinkedPresets(presets, structure, instance) {
     const looks = filterLooksForScreen(allLooks, layout.screenIndex);
     let section = {
       id: layout.sectionId,
-      name: `HighAsCG · Looks + preview · ${layout.label}`,
+      name: `HighAsCG · Looks · ${layout.label}`,
       definitions: [],
     };
     structure.push(section);

@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] - 2026-11-14
+
+### Fixed
+
+- Four Timeline presets (Remaining, Position, Active timeline name, Duration) and the Selection preset showed `{"isExpression":true,"valu…` instead of their value: the button text was handed to Companion as an expression object. It is a plain variable string now. Drag the presets again to replace buttons made from the broken ones.
+
+### Removed
+
+- All button images. The module no longer draws or forwards any image:
+  - **Compose preview** presets (full frame and 2×2 quadrants), their variables, the HTTP fallback poller and the config option "Compose preview on Stream Deck buttons".
+  - **Look on-air stills** on the look buttons, and the feedback "Look on air — compose preview image". The "Looks · Screen n" buttons keep their label and the red (PGM) / green (PRV) border.
+  - The PNG progress bar of the **PGM readback** button. The bar is text now (`▰▰▰▱▱▱▱▱`) under the remaining time.
+- The module tells HighAsCG not to render or push preview images, and drops image variables a server still sends.
+- Dependencies `pngjs` and `jpeg-js`.
+
 ## [1.0.5] - 2026-11-13
 
 ### Fixed

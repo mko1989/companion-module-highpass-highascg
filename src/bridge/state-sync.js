@@ -8,11 +8,9 @@
 import getVariables from "../variables.js";
 import { refreshLookAirFeedbacks } from "../look-feedback-ids.js";
 import { msToHms } from "../time-format.js";
-import { isComposePreviewButtonsEnabled } from "../compose-preview-channels.js";
-import { PreviewVariableGate } from "../preview-variable-gate.js";
 import { ingestGlobalBorders } from "../global-borders.js";
 import { sendCompanionHello } from "./companion-hello.js";
-import { PREVIEW } from "./contract.js";
+import { isButtonImageServerKey } from "./contract.js";
 import { syncScreenLabelVariables } from "../look-vars.js";
 import { timelineListSignature } from "../timelines.js";
 
@@ -66,18 +64,6 @@ function _deepMergeScene(a, b) {
 
 /** Human-readable Companion label for a HighAsCG `variables` key. */
 function _labelForServerKey(key) {
-  const preview = key.match(/^compose_preview_ch(\d+)_image$/);
-  if (preview) {
-    return `Compose preview ch${preview[1]} (button image data URI)`;
-  }
-  const quad = key.match(/^compose_preview_ch(\d+)_quad_(tl|tr|bl|br)$/);
-  if (quad) {
-    return `Compose preview ch${quad[1]} quadrant ${quad[2].toUpperCase()}`;
-  }
-  const lookAir = key.match(/^look_air_frame_(.+)$/);
-  if (lookAir) {
-    return `Look on-air still (${lookAir[1]})`;
-  }
   if (key.startsWith("ui_selection_")) {
     const tail = key.slice("ui_selection_".length).replace(/_/g, " ");
     return `UI selection: ${tail}`;
@@ -111,7 +97,6 @@ class HighAsCGStateSync {
     this._channelMapSig = "";
     /** @type {string | undefined} */
     this._timelineListSig = undefined;
-    this._previewGate = new PreviewVariableGate();
   }
 
   /** Latest server variable value (unprefixed key as in HighAsCG `state.variables`). */
@@ -142,44 +127,18 @@ class HighAsCGStateSync {
     this.instance.setVariableDefinitions({ ...base, ...serverDefs });
   }
 
-  _isPreviewVariableKey(key) {
-    const k = String(key);
-    return (
-      PREVIEW.COMPOSE_IMAGE_RE.test(k) ||
-      PREVIEW.COMPOSE_QUAD_RE.test(k) ||
-      PREVIEW.LOOK_AIR_FRAME_RE.test(k)
-    );
-  }
-
-  _hasPreviewVariables(variables) {
-    if (!variables || typeof variables !== "object") return false;
-    return Object.keys(variables).some((key) =>
-      this._isPreviewVariableKey(key),
-    );
-  }
-
-  _hasNonPreviewVariables(variables) {
-    if (!variables || typeof variables !== "object") return false;
-    return Object.keys(variables).some(
-      (key) => !this._isPreviewVariableKey(key),
-    );
-  }
-
-  _composePreviewButtonsEnabled() {
-    return isComposePreviewButtonsEnabled(this.instance?.config);
-  }
-
   /**
+   * The module shows no button images. A server that still pushes image data URIs (compose preview,
+   * look stills) must not fill Companion's variable store with them — those keys are dropped here.
    * @param {Record<string, string>} variables
    * @returns {Record<string, string>}
    */
-  _withoutPreviewVariables(variables) {
+  _withoutImageVariables(variables) {
     if (!variables || typeof variables !== "object") return {};
-    if (this._composePreviewButtonsEnabled()) return variables;
     /** @type {Record<string, string>} */
     const out = {};
     for (const [key, val] of Object.entries(variables)) {
-      if (!this._isPreviewVariableKey(key)) out[key] = val;
+      if (!isButtonImageServerKey(key)) out[key] = val;
     }
     return out;
   }
@@ -228,7 +187,7 @@ class HighAsCGStateSync {
   }
 
   /**
-   * Merge partial snapshot vars and push to Companion (hash dedupe on preview images).
+   * Merge partial snapshot vars and push to Companion.
    * @param {Record<string, string>} variables — unprefixed HighAsCG keys
    */
   _pushServerVariables(variables) {
@@ -246,20 +205,7 @@ class HighAsCGStateSync {
       values[`highascg_${key}`] = val;
     }
     this.instance.setVariableValues(values);
-    if (this._composePreviewButtonsEnabled()) {
-      for (const [key, val] of Object.entries(variables)) {
-        const m = String(key).match(/^compose_preview_ch(\d+)_image$/);
-        if (m) {
-          this.instance._lookAirFrames?.onChannelPreview(
-            parseInt(m[1], 10),
-            val,
-          );
-        }
-      }
-    }
-    if (this._hasNonPreviewVariables(variables)) {
-      refreshLookAirFeedbacks(this.instance);
-    }
+    refreshLookAirFeedbacks(this.instance);
   }
 
   /**
@@ -268,10 +214,9 @@ class HighAsCGStateSync {
    */
   updateVariables(variables) {
     if (!variables || typeof variables !== "object") return;
-    const stripped = this._withoutPreviewVariables(variables);
+    const stripped = this._withoutImageVariables(variables);
     if (Object.keys(stripped).length === 0) return;
-    const filtered = this._previewGate.filterServerBatch(stripped);
-    this._pushServerVariables(filtered);
+    this._pushServerVariables(stripped);
   }
 
   /**
@@ -283,7 +228,7 @@ class HighAsCGStateSync {
 
     if (data.variables && typeof data.variables === "object") {
       const prev = this._merged.variables || {};
-      const next = { ...data.variables };
+      const next = this._withoutImageVariables(data.variables);
       /** @type {Record<string, string>} */
       const toPush = { ...next };
       for (const k of Object.keys(prev)) {
@@ -291,9 +236,7 @@ class HighAsCGStateSync {
       }
       this._merged.variables = next;
       this._maybeSyncVariableDefinitions();
-      const stripped = this._withoutPreviewVariables(toPush);
-      const filtered = this._previewGate.filterServerBatch(stripped);
-      this._pushServerVariables(filtered);
+      this._pushServerVariables(toPush);
     }
 
     // WO-394: no direct AMCP socket anymore — the app's own Caspar link state feeds the
@@ -305,8 +248,6 @@ class HighAsCGStateSync {
         this.instance.checkFeedbacks("caspar_connected");
       }
     }
-
-    const prevLive = this.instance._sceneLive;
 
     if (data.timeline !== undefined) {
       this._merged.timeline = _deepMergeTimeline(
@@ -353,11 +294,6 @@ class HighAsCGStateSync {
     this._syncFeedbackContext();
 
     if (data.scene !== undefined) {
-      const nextLive =
-        this.instance._sceneLive && typeof this.instance._sceneLive === "object"
-          ? this.instance._sceneLive
-          : {};
-      this.instance._lookAirFrames?.syncFromSceneLive(prevLive, nextLive);
       this._refreshLookAirFeedbacks();
     }
 

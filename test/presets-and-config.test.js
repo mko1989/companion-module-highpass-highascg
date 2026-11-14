@@ -256,3 +256,70 @@ describe("screen timer presets", () => {
     }
   });
 });
+
+describe("no button images anywhere (1.0.6)", () => {
+  const inst = stubInstance();
+  inst._channelMap.previewChannels = [2, 4];
+  inst.bridge = {
+    sync: { _merged: { timeline: { list: [{ id: "t1", name: "Intro" }] } } },
+  };
+
+  it("every simple preset's text is a plain string (an expression object was printed as JSON)", async () => {
+    const { default: getPresets } = await import("../src/presets.js");
+    const { presets } = getPresets(inst);
+    for (const [key, p] of Object.entries(presets)) {
+      if (p.type !== "simple") continue;
+      assert.equal(typeof p.style.text, "string", key);
+    }
+    for (const key of [
+      "tl_remaining_var",
+      "tl_position_var",
+      "tl_name_var",
+      "tl_duration_var",
+    ]) {
+      assert.match(
+        presets[key].style.text,
+        /^\$\(highascg:highascg_timeline_\w+\)$/,
+        key,
+      );
+    }
+  });
+
+  it("no preset, feedback or variable carries an image", async () => {
+    const { default: getPresets } = await import("../src/presets.js");
+    const { default: getFeedbacks } = await import("../src/feedbacks.js");
+    const { default: getVariables } = await import("../src/variables.js");
+    const { presets, structure } = getPresets(inst);
+    const text = JSON.stringify(presets);
+    assert.doesNotMatch(
+      text,
+      /base64|png64|"type":"image"|compose_preview|air_frame/,
+    );
+    assert.ok(!structure.some((s) => /compose_preview/.test(s.id)));
+    for (const [id, fb] of Object.entries(getFeedbacks(inst))) {
+      assert.ok(!(fb.affectedProperties || []).includes("png64"), id);
+    }
+    assert.ok(!getFeedbacks(inst).look_compose_preview_image);
+    assert.doesNotMatch(
+      Object.keys(getVariables(inst)).join(" "),
+      /compose_preview|air_frame/,
+    );
+  });
+
+  it("the server is told not to push images, and image keys it still sends are dropped", async () => {
+    const { buildCompanionHelloMessage } =
+      await import("../src/bridge/companion-hello.js");
+    const { isButtonImageServerKey } =
+      await import("../src/bridge/contract.js");
+    assert.deepEqual(buildCompanionHelloMessage(inst).data.preview, {
+      enabled: false,
+      channels: [],
+      quadrants: false,
+      lookAirFrames: false,
+    });
+    assert.ok(isButtonImageServerKey("compose_preview_ch2_image"));
+    assert.ok(isButtonImageServerKey("compose_preview_ch2_quad_tl"));
+    assert.ok(isButtonImageServerKey("look_air_frame_abc-1"));
+    assert.ok(!isButtonImageServerKey("timeline_name"));
+  });
+});

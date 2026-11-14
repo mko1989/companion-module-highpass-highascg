@@ -101,12 +101,6 @@ class HighAsCGWs {
           // start/stop/log — without this handler feedbacks only updated while WS was DOWN
           // (the poller early-returns when WS is up).
           this.instance.bridge?.streamingChannelPoller?.applyStatus(msg.data);
-        } else if (t === "compose.preview" && msg.data?.channel != null) {
-          if (this.ws?.readyState !== 1) {
-            this.instance.bridge?.previewPoller?.scheduleFetch(
-              msg.data.channel,
-            );
-          }
         } else if (t === "change" && msg.data && msg.data.path != null) {
           const path = String(msg.data.path);
           if (path === "scene.live") {

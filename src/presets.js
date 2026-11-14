@@ -1,5 +1,4 @@
 import { combineRgb } from "@companion-module/base";
-import { addComposePreviewPresets } from "./presets/compose-preview-presets.js";
 import { addStreamingPresets } from "./presets/streaming-presets.js";
 import { addLookPreviewLinkedPresets } from "./presets/look-preview-linked-presets.js";
 import { addPrvTakePresets } from "./presets/prv-take-presets.js";
@@ -10,11 +9,7 @@ import { addGlobalBorderPresets } from "./presets/global-border-presets.js";
 import { addLookPresetPresets } from "./presets/look-preset-presets.js";
 import { addPgmReadbackPresets } from "./presets/pgm-readback-presets.js";
 import { addTimelinePresets } from "./presets/timeline-presets.js";
-import {
-  connectionVariableExpression,
-  connectionLabel,
-} from "./connection-expressions.js";
-import { isComposePreviewButtonsEnabled } from "./compose-preview-channels.js";
+import { connectionLabel } from "./connection-expressions.js";
 import { mainScopeShortLabel, normalizeMainScope } from "./look-scope.js";
 import {
   lookLabelVariableId,
@@ -27,7 +22,9 @@ import {
  * @param {string} variableId
  */
 function connectionVar(instance, variableId) {
-  return connectionVariableExpression(instance, variableId);
+  // Button TEXT is a plain variable string. An { isExpression, value } object here was printed
+  // on the button as its JSON ({"isExpression":true,"valu…) — the four timeline variable presets.
+  return `$(${connectionLabel(instance)}:${variableId})`;
 }
 
 /**
@@ -70,16 +67,6 @@ export default function getPresets(instance) {
     { id: "screen_timers", name: "HighAsCG · Screen timers", definitions: [] },
     { id: "pgm_readback", name: "HighAsCG · PGM readback", definitions: [] },
     { id: "playlists", name: "HighAsCG · Playlists", definitions: [] },
-    {
-      id: "compose_preview",
-      name: "HighAsCG · Compose preview",
-      definitions: [],
-    },
-    {
-      id: "compose_preview_quadrants",
-      name: "HighAsCG · Compose preview · Quadrants",
-      definitions: [],
-    },
   ];
 
   const section = (id) => {
@@ -337,10 +324,7 @@ export default function getPresets(instance) {
     type: "simple",
     name: "Selection (variables)",
     style: {
-      text: {
-        isExpression: true,
-        value: `$(${connectionLabel(instance)}:highascg_ui_selection_label)\\n$(${connectionLabel(instance)}:highascg_ui_selection_context)`,
-      },
+      text: `$(${connectionLabel(instance)}:highascg_ui_selection_label)\\n$(${connectionLabel(instance)}:highascg_ui_selection_context)`,
       size: "14",
       color: combineRgb(255, 255, 255),
       bgcolor: combineRgb(38, 38, 58),
@@ -487,16 +471,6 @@ export default function getPresets(instance) {
     ],
     feedbacks: [],
   });
-
-  addComposePreviewPresets(presets, structure, instance);
-  if (!isComposePreviewButtonsEnabled(instance?.config)) {
-    for (let i = structure.length - 1; i >= 0; i -= 1) {
-      const id = structure[i].id;
-      if (id === "compose_preview" || id === "compose_preview_quadrants") {
-        structure.splice(i, 1);
-      }
-    }
-  }
 
   addLookPreviewLinkedPresets(presets, structure, instance);
 

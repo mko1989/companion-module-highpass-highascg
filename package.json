@@ -1,6 +1,6 @@
 {
   "name": "companion-module-highpass-highascg",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "type": "module",
   "main": "index.js",
   "engines": {
@@ -16,8 +16,6 @@
   },
   "dependencies": {
     "@companion-module/base": "^2.1.0",
-    "jpeg-js": "^0.4.4",
-    "pngjs": "^7.0.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {

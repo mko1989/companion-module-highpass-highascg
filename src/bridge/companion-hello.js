@@ -3,10 +3,6 @@
  */
 
 import { MODULE_ID, WS } from "./contract.js";
-import {
-  isComposePreviewButtonsEnabled,
-  resolveComposePreviewChannels,
-} from "../compose-preview-channels.js";
 
 /** @typedef {import('../instance.js').HighAsCGInstance} HighAsCGInstance */
 
@@ -15,18 +11,18 @@ import {
  * @returns {{ type: string, data: object }}
  */
 export function buildCompanionHelloMessage(instance) {
-  const enabled = isComposePreviewButtonsEnabled(instance?.config);
   return {
     type: WS.COMPANION_HELLO,
     data: {
       moduleId: MODULE_ID,
-      moduleVersion: "1.0.1",
+      moduleVersion: "1.0.6",
       instanceId: String(instance?.id ?? "").trim(),
+      // The module shows no button images: tell the server not to render or push any.
       preview: {
-        enabled,
-        channels: enabled ? resolveComposePreviewChannels(instance) : [],
-        quadrants: enabled,
-        lookAirFrames: enabled,
+        enabled: false,
+        channels: [],
+        quadrants: false,
+        lookAirFrames: false,
       },
     },
   };

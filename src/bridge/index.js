@@ -1,7 +1,6 @@
 import { HighAsCGApi } from "./api-client.js";
 import { HighAsCGWs } from "./ws-client.js";
 import { HighAsCGStateSync } from "./state-sync.js";
-import { ComposePreviewPoller } from "./compose-preview-poller.js";
 import { StreamingChannelPoller } from "./streaming-channel-poller.js";
 import { ScreenTimerPoller } from "./screen-timer-poller.js";
 import { PlaylistPoller } from "./playlist-poller.js";
@@ -13,13 +12,11 @@ class HighAsCGBridge {
     this.instance = instance;
     this.api = new HighAsCGApi(instance);
     this.sync = new HighAsCGStateSync(instance);
-    this.previewPoller = new ComposePreviewPoller(instance);
     this.streamingChannelPoller = new StreamingChannelPoller(instance);
     this.screenTimerPoller = new ScreenTimerPoller(instance);
     this.playlistPoller = new PlaylistPoller(instance);
     this.pgmLayerPoller = new PgmLayerPoller(instance);
     this.ws = new HighAsCGWs(instance);
-    this.previewPoller.start();
     this.streamingChannelPoller.start();
     this.screenTimerPoller.start();
     this.playlistPoller.start();
@@ -35,10 +32,6 @@ class HighAsCGBridge {
   }
 
   destroy() {
-    if (this.previewPoller) {
-      this.previewPoller.stop();
-      this.previewPoller = null;
-    }
     if (this.streamingChannelPoller) {
       this.streamingChannelPoller.stop();
       this.streamingChannelPoller = null;

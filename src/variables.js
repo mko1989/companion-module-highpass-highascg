@@ -1,9 +1,4 @@
 import { lookLabelVariableId } from "./look-vars.js";
-import { lookAirFrameVariableId } from "./look-air-frame.js";
-import {
-  isComposePreviewButtonsEnabled,
-  resolveComposePreviewChannels,
-} from "./compose-preview-channels.js";
 import { screenTimerVariableDefinitions } from "./screen-timers.js";
 import { playlistVariableDefinitions } from "./playlists.js";
 import { globalBorderVariableDefinitions } from "./global-borders.js";
@@ -87,38 +82,6 @@ const STREAMING_CHANNEL_VARIABLE_DEFINITIONS = [
     name: "HighAsCG: Record output ID",
   },
 ];
-
-/** @returns {string} Companion variable id for full-frame compose preview on a channel. */
-export function composePreviewImageVariableId(channel) {
-  const ch = Math.max(1, parseInt(String(channel), 10) || 1);
-  return `highascg_compose_preview_ch${ch}_image`;
-}
-
-/** @returns {string} Companion variable id for a compose preview quadrant. */
-export function composePreviewQuadrantVariableId(channel, quadrant) {
-  const ch = Math.max(1, parseInt(String(channel), 10) || 1);
-  return `highascg_compose_preview_ch${ch}_quad_${quadrant}`;
-}
-
-/** @param {number[]} channels */
-export function buildComposePreviewVariableDefinitions(channels) {
-  return channels.flatMap((ch) => {
-    const full = {
-      variableId: composePreviewImageVariableId(ch),
-      name: `Compose preview ch${ch} (button image data URI)`,
-    };
-    const quads = ["tl", "tr", "bl", "br"].map((quad) => ({
-      variableId: composePreviewQuadrantVariableId(ch, quad),
-      name: `Compose preview ch${ch} quadrant ${quad.toUpperCase()} (button image)`,
-    }));
-    return [full, ...quads];
-  });
-}
-
-/** @returns {typeof buildComposePreviewVariableDefinitions} */
-export function getComposePreviewVariableDefinitions(channels = [1, 2, 3]) {
-  return buildComposePreviewVariableDefinitions(channels);
-}
 
 /** Authoritative HighAsCG UI selection keys (55 total). Same prefix as server `variables`. */
 const UI_SELECTION_VARIABLE_DEFINITIONS = [
@@ -396,16 +359,6 @@ export default function getVariables(instance) {
   /** @type {Record<string, { name: string }>} */
   const out = { ...base };
 
-  if (isComposePreviewButtonsEnabled(instance?.config)) {
-    const channels = resolveComposePreviewChannels(instance);
-    Object.assign(
-      out,
-      variableDefinitionsToObject(
-        buildComposePreviewVariableDefinitions(channels),
-      ),
-    );
-  }
-
   const looks = Array.isArray(instance?._presetLooks)
     ? instance._presetLooks
     : [];
@@ -417,9 +370,6 @@ export default function getVariables(instance) {
     const shortName = String(look.name || id).slice(0, 48);
     lookDefs[lookLabelVariableId(id)] = {
       name: `Look label: ${shortName}`,
-    };
-    lookDefs[lookAirFrameVariableId(id)] = {
-      name: `Look on-air still: ${shortName}`,
     };
   }
   return { ...out, ...lookDefs };

@@ -25,7 +25,7 @@ export default function () {
       width: 12,
       label: "Information",
       value:
-        "Controls a HighAsCG playout box over its HTTP REST + WebSocket bridge: looks, timelines, scene take, stream/record outputs, timers and button preview images.",
+        "Controls a HighAsCG playout box over its HTTP REST + WebSocket bridge: looks, timelines, scene take, stream/record outputs, timers.",
     },
     {
       type: "textinput",
@@ -54,43 +54,6 @@ export default function () {
         "The box's shared API password. Leave empty while API authentication is off.",
       tooltip:
         "The box's shared API password. Leave empty while API authentication is off.",
-    },
-    {
-      type: "static-text",
-      id: "sep_preview",
-      width: 12,
-      value: "---",
-    },
-    {
-      type: "static-text",
-      id: "highascg_preview_help",
-      width: 12,
-      label: "Compose preview button images",
-      value:
-        "1) HighAsCG Settings: enable Companion preview variables. 2) Re-drag Compose preview presets after reload.",
-    },
-    {
-      type: "checkbox",
-      id: "compose_preview_buttons_enabled",
-      label: "Compose preview on Stream Deck buttons",
-      width: 12,
-      default: true,
-    },
-    {
-      type: "static-text",
-      id: "compose_preview_traffic_help",
-      width: 12,
-      label: "Compose preview traffic",
-      value:
-        "When enabled, live JPEG variables update button images (~0.5–1.5 Mbps per active channel over WebSocket). Disable to keep actions/looks only.",
-    },
-    {
-      type: "static-text",
-      id: "compose_mosaic_help",
-      width: 12,
-      label: "Custom mosaic layouts (5×4 walls, etc.)",
-      value:
-        "Not in this module version yet (WO-72 Phase D). Use the built-in 2×2 quadrant presets per channel for now.",
     },
     {
       type: "static-text",

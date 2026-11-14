@@ -1,9 +1,5 @@
 import { combineRgb } from "@companion-module/base";
-import {
-  dataUriToRawBase64,
-  resolveLookAirState,
-  resolveAudioOnlyLookAirState,
-} from "./look-air-state.js";
+import { resolveAudioOnlyLookAirState } from "./look-air-state.js";
 import {
   streamOutputChoices,
   recordOutputChoices,
@@ -25,7 +21,7 @@ export default function (instance) {
       type: "boolean",
       name: "Look is on program (PGM)",
       description:
-        "True when this look id matches the live scene on the program channel for the given screen index (from HighAsCG scene.live). On layered buttons, add style overrides on your image layer: opacity 100 and base64Image = $(highpass-highascg:highascg_compose_preview_ch{N}_image) for the screen PGM channel.",
+        "True when this look id matches the live scene on the program channel for the given screen index (from HighAsCG scene.live).",
       defaultStyle: {
         bgcolor: combineRgb(200, 0, 0),
         color: combineRgb(255, 255, 255),
@@ -91,7 +87,7 @@ export default function (instance) {
       type: "boolean",
       name: "Look is on preview for screen (PRV bus)",
       description:
-        "True when this look is live on the preview Caspar channel for the given screen index (from scene.live). Hidden when the same look is on PGM for that screen. On layered buttons, add style overrides on your image layer: opacity 100 and base64Image = $(highpass-highascg:highascg_compose_preview_ch{N}_image) for the screen PRV channel.",
+        "True when this look is live on the preview Caspar channel for the given screen index (from scene.live). Hidden when the same look is on PGM for that screen.",
       defaultStyle: {
         bgcolor: combineRgb(0, 180, 0),
         color: combineRgb(255, 255, 255),
@@ -322,45 +318,6 @@ export default function (instance) {
       options: [],
       callback: () => {
         return instance.bridge?.ws?.ws?.readyState === 1;
-      },
-    },
-
-    look_compose_preview_image: {
-      type: "advanced",
-      name: "Look on air — compose preview image",
-      description:
-        "Shows the PGM or PRV compose preview for this look on a simple button (png64). For layered buttons, prefer look_on_pgm / look_on_prv_for_screen with image-layer style overrides instead.",
-      affectedProperties: ["png64"],
-      options: [
-        {
-          type: "textinput",
-          id: "look_id",
-          label: "Look id",
-          default: "",
-        },
-        {
-          type: "number",
-          id: "screen_index",
-          label: "Screen index",
-          default: 0,
-          min: 0,
-          max: 7,
-        },
-      ],
-      callback: (feedback) => {
-        const lookId = String(feedback.options.look_id ?? "").trim();
-        if (!lookId) return {};
-        const screenIdx = Math.max(
-          0,
-          parseInt(feedback.options.screen_index, 10) || 0,
-        );
-        const state = resolveLookAirState(instance, lookId, screenIdx);
-        if (!state.previewVariableId) return {};
-        const uri = instance.getVariableValue(state.previewVariableId);
-        if (!uri) return {};
-        const png64 = dataUriToRawBase64(uri);
-        if (!png64) return {};
-        return { png64 };
       },
     },
 

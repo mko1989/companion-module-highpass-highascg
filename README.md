@@ -21,11 +21,8 @@ This builds the module, installs it to Companion's modules directory, and update
 
 - **Box Host** — IP of the HighAsCG box (default `127.0.0.1`)
 - **HighAsCG HTTP Port** — app HTTP/WS port (default `4200`)
-- **Compose preview on Stream Deck buttons** — when enabled (default), live JPEG compose previews update button images over the WebSocket bridge (~0.5–1.5 Mbps per active channel). Disable on remote Companion hosts or when you only need look/scene actions and text labels without live thumbnails. Look recall buttons still show PGM/PRV borders and names when preview is off; on-air live video on look buttons requires this option on
 
-Compose preview presets and variables are generated only for **CasparCG channels in your HighAsCG channel map** (PGM + PRV outputs), not a fixed ch1–8 list.
-
-Quadrant presets (2×2 per channel) include seam-safe corner badges: **PGM** or **PRV** bottom-left, **SCR n** bottom-right on the matching cells.
+Buttons show text, colours and borders only — the module draws no images.
 
 ### Hot Backup
 

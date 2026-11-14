@@ -6,12 +6,11 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { PNG } from "pngjs";
 
 import {
   barPixels,
-  BAR_WIDTH,
-  drawBarPng64,
+  BAR_SEGMENTS,
+  barText,
   formatRemaining,
   getPgmLayerFeedbacks,
   PGM_READBACK_FEEDBACK_ID,
@@ -83,12 +82,6 @@ function stubInstance(extra = {}) {
   };
 }
 
-const decode = (b64) => PNG.sync.read(Buffer.from(b64, "base64"));
-const px = (png, x, y) =>
-  Array.from(
-    png.data.slice((y * png.width + x) * 4, (y * png.width + x) * 4 + 4),
-  );
-
 describe("WO-803 remaining time and bar", () => {
   it("mm:ss under an hour, h:mm:ss above, rounded up; unknown = --:--", () => {
     assert.equal(formatRemaining(991.08), "16:32");
@@ -101,46 +94,35 @@ describe("WO-803 remaining time and bar", () => {
     assert.equal(formatRemaining(undefined), "--:--");
   });
 
-  it("bar pixels clamp to 0..width", () => {
-    assert.equal(barPixels(0.5), 36);
-    assert.equal(barPixels(1.4), BAR_WIDTH);
+  it("bar units clamp to 0..scale", () => {
+    assert.equal(barPixels(0.5), 4);
+    assert.equal(barPixels(1.4), BAR_SEGMENTS);
     assert.equal(barPixels(-1), 0);
     assert.equal(barPixels(NaN), 0);
     assert.equal(barPixels(0.25, 100), 25);
   });
 
-  it("the drawn bar: red fill up to the progress, grey track after; amber while paused", () => {
-    const png = decode(drawBarPng64(18));
-    assert.equal(png.width, 72);
-    assert.equal(png.height, 8);
-    assert.deepEqual(px(png, 0, 0), [220, 0, 0, 255]);
-    assert.deepEqual(px(png, 17, 7), [220, 0, 0, 255]);
-    assert.deepEqual(px(png, 18, 0), [70, 70, 70, 255]);
-    assert.deepEqual(
-      px(decode(drawBarPng64(18, { paused: true })), 5, 3),
-      [230, 160, 0, 255],
-    );
-    assert.equal(decode(drawBarPng64(10, { width: 96 })).width, 96);
+  it("the bar is text: filled blocks up to the progress, empty after", () => {
+    assert.equal(barText(0), "▱▱▱▱▱▱▱▱");
+    assert.equal(barText(3), "▰▰▰▱▱▱▱▱");
+    assert.equal(barText(8), "▰▰▰▰▰▰▰▰");
+    assert.equal(barText(99), "▰▰▰▰▰▰▰▰");
   });
 });
 
 describe("WO-803 feedback", () => {
-  it("live: label + remaining, bar at the bottom", () => {
+  it("live: label + remaining + text bar; no image on the button", () => {
     const s = readbackStyle(live(), "Dioda");
-    assert.equal(s.text, "Dioda\\n16:32");
-    assert.equal(s.pngalignment, "center:bottom");
-    const png = decode(s.png64);
-    assert.equal(png.width, 72);
-    assert.deepEqual(px(png, barPixels(0.653) - 1, 0), [220, 0, 0, 255]);
-    assert.deepEqual(px(png, barPixels(0.653), 0), [70, 70, 70, 255]);
+    assert.equal(s.text, "Dioda\\n16:32\\n▰▰▰▰▰▱▱▱");
+    assert.equal(s.png64, undefined);
+    assert.equal(s.pngalignment, undefined);
   });
 
   it("paused marker; cleared/taken-out state is dim with no bar", () => {
     const p = readbackStyle(live({ paused: true }), "Dioda");
-    assert.equal(p.text, "Dioda\\n16:32\\nPAUSED");
+    assert.equal(p.text, "Dioda\\n16:32 PAUSED\\n▰▰▰▰▰▱▱▱");
     const c = readbackStyle(idle(0), "Dioda");
     assert.equal(c.text, "Dioda\\n--:--");
-    assert.equal(c.png64, undefined);
     assert.equal(readbackStyle(null, "S2").text, "S2\\n--:--");
   });
 
@@ -160,15 +142,10 @@ describe("WO-803 feedback", () => {
     );
     assert.equal(
       fb.callback({ options: { screen: "0" } }).text,
-      "Dioda\\n16:32",
+      "Dioda\\n16:32\\n▰▰▰▰▰▱▱▱",
     );
+    assert.deepEqual(fb.affectedProperties, ["text", "color", "bgcolor"]);
     assert.equal(fb.callback({ options: { screen: "1" } }).text, "S2\\n--:--");
-    // Companion's button size, when given, sets the bar width.
-    const wide = fb.callback({
-      options: { screen: "0" },
-      image: { width: 96, height: 96 },
-    });
-    assert.equal(decode(wide.png64).width, 96);
     assert.ok(getFeedbacks(inst)[PGM_READBACK_FEEDBACK_ID]);
   });
 });
